@@ -16,30 +16,31 @@ function migrateLegacyData() {
   }
 }
 
-// Merges this browser's own (localStorage) candidates with the shared-sheet
-// list — filtered server-side to the logged-in staff member's own 担当
-// (or everyone, if their role is "host") — so one staff browser sees their
-// own candidates plus whatever they've already cached locally. Local
-// entries win on conflict since they're the freshest copy this browser
-// actually has.
+// When login is active, the set of candidates shown is driven entirely by
+// the server's 担当-filtered list (or everyone, for "host") — NOT by
+// whatever happens to be cached in this browser's localStorage, since that
+// cache has no idea who's logged in and would otherwise leak whatever an
+// earlier login (or an earlier, pre-login version of this tool) left behind.
+// Local copies are only used to fill in fresher-looking data for entries the
+// server already confirmed belong to this login.
 async function loadAllCandidates(auth) {
-  const local = listCandidates();
-  const localIds = new Set(local.map(c => c.id));
-  if (!SYNC_CONFIG.webAppUrl || !auth) return local;
+  if (!SYNC_CONFIG.webAppUrl) return listCandidates();
+  if (!auth) return [];
 
   const result = await fetchCandidateListFromSheet(auth.name, auth.password);
-  if (!result.ok) return local;
-  const remoteOnly = result.list
-    .filter(r => r.candidateId && !localIds.has(r.candidateId))
-    .map(r => ({
+  if (!result.ok) return [];
+  const localById = new Map(listCandidates().map(c => [c.id, c]));
+  return result.list
+    .filter(r => r.candidateId)
+    .map(r => localById.get(r.candidateId) || {
       id: r.candidateId,
       name: r.fullName || "",
       updatedAt: r.updatedAt || null,
       hasRirekisho: !!r.hasRirekisho,
       hasShokumu: !!r.hasShokumu,
       remoteOnly: true
-    }));
-  return [...local, ...remoteOnly].sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+    })
+    .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
 }
 
 function renderCandidatesList(candidates) {
@@ -116,9 +117,14 @@ function renderCandidatesList(candidates) {
 }
 
 async function refreshCandidatesList() {
-  const auth = SYNC_CONFIG.webAppUrl ? getStaffAuth() : null;
-  renderCandidatesList(listCandidates());
-  const all = await loadAllCandidates(auth);
+  // No login system active: same instant local-only render as before.
+  if (!SYNC_CONFIG.webAppUrl) {
+    renderCandidatesList(listCandidates());
+    return;
+  }
+  // With login active, don't flash the unfiltered local list first — it may
+  // contain candidates left over from a different login on this browser.
+  const all = await loadAllCandidates(getStaffAuth());
   renderCandidatesList(all);
 }
 
