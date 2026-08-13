@@ -36,7 +36,7 @@
 // someone else's link) require a valid staff login, and are filtered to that
 // staff's own 担当 unless they're "host".
 
-const SITE_BASE_URL = ""; // e.g. "https://your-username.github.io/resume-site"
+const SITE_BASE_URL = "https://masa29happy-commits.github.io/zikosyoukai";
 
 const HEADERS = ["更新日時", "CandidateId", "氏名", "ふりがな", "生年月日", "電話", "Email", "現住所", "履歴書JSON", "職務経歴書JSON", "リンク", "担当"];
 

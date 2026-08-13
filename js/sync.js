@@ -5,7 +5,7 @@
 // as before until a host deploys the Apps Script and pastes its URL in here.
 // See google-apps-script.gs for the script to paste into the Sheet.
 const SYNC_CONFIG = {
-  webAppUrl: ""
+  webAppUrl: "https://script.google.com/macros/s/AKfycbyhSAYHwBNuk4uEmDUZKC7zUJfypDmb1SMPHa0R_3r0GI26D9jqYo1MIEOUxUEDVn-cDA/exec"
 };
 
 // Site-wide (not per-candidate) staff login, shared by every page via
