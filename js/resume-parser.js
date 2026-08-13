@@ -5,6 +5,20 @@
 // etc. This is inherently approximate — the caller must let the user review
 // and correct the result, especially for scanned/handwritten sources.
 
+// Older Safari/iOS (and older Chrome) don't have Promise.withResolvers, which
+// the current pdf.js build relies on internally — without this, loading a PDF
+// throws "undefined is not a function" on those browsers. Must run before
+// pdf.min.mjs is imported below. (The same polyfill is also prepended to
+// vendor/pdf.worker.min.mjs, since the worker has its own separate global
+// scope this doesn't reach.)
+if (typeof Promise.withResolvers !== "function") {
+  Promise.withResolvers = function withResolvers() {
+    let resolve, reject;
+    const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+    return { promise, resolve, reject };
+  };
+}
+
 // ---------- PDF text extraction (pdf.js) ----------
 let pdfjsLibPromise = null;
 function loadPdfJs() {
