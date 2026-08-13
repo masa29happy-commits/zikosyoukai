@@ -19,6 +19,53 @@ if (typeof Promise.withResolvers !== "function") {
   };
 }
 
+// Same reasoning as above, for the newer Uint8Array<->hex/base64 methods
+// pdf.js also relies on internally (e.g. to compute a document fingerprint).
+// Baseline-2025 features, so plenty of still-current browsers lack them.
+if (typeof Uint8Array.prototype.toHex !== "function") {
+  Uint8Array.prototype.toHex = function () {
+    let hex = "";
+    for (let i = 0; i < this.length; i++) hex += this[i].toString(16).padStart(2, "0");
+    return hex;
+  };
+}
+if (typeof Uint8Array.fromHex !== "function") {
+  Uint8Array.fromHex = function (hex) {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    return bytes;
+  };
+}
+if (typeof Uint8Array.prototype.setFromHex !== "function") {
+  Uint8Array.prototype.setFromHex = function (hex) {
+    const bytes = Uint8Array.fromHex(hex);
+    this.set(bytes);
+    return { read: hex.length, written: bytes.length };
+  };
+}
+if (typeof Uint8Array.prototype.toBase64 !== "function") {
+  Uint8Array.prototype.toBase64 = function () {
+    let binary = "";
+    for (let i = 0; i < this.length; i++) binary += String.fromCharCode(this[i]);
+    return btoa(binary);
+  };
+}
+if (typeof Uint8Array.fromBase64 !== "function") {
+  Uint8Array.fromBase64 = function (base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  };
+}
+if (typeof Uint8Array.prototype.setFromBase64 !== "function") {
+  Uint8Array.prototype.setFromBase64 = function (base64) {
+    const bytes = Uint8Array.fromBase64(base64);
+    this.set(bytes);
+    return { read: base64.length, written: bytes.length };
+  };
+}
+
 // ---------- PDF text extraction (pdf.js) ----------
 let pdfjsLibPromise = null;
 function loadPdfJs() {
