@@ -17,15 +17,19 @@ function migrateLegacyData() {
 }
 
 // Merges this browser's own (localStorage) candidates with the shared-sheet
-// list (other people's candidates, synced from their own browsers) so one
-// admin browser can see and open everyone's data, not just what it saved
-// itself. Local entries win on conflict since they're the freshest copy this
-// browser actually has.
-async function loadAllCandidates() {
+// list — filtered server-side to the logged-in staff member's own 担当
+// (or everyone, if their role is "host") — so one staff browser sees their
+// own candidates plus whatever they've already cached locally. Local
+// entries win on conflict since they're the freshest copy this browser
+// actually has.
+async function loadAllCandidates(auth) {
   const local = listCandidates();
   const localIds = new Set(local.map(c => c.id));
-  const remote = await fetchCandidateListFromSheet();
-  const remoteOnly = remote
+  if (!SYNC_CONFIG.webAppUrl || !auth) return local;
+
+  const result = await fetchCandidateListFromSheet(auth.name, auth.password);
+  if (!result.ok) return local;
+  const remoteOnly = result.list
     .filter(r => r.candidateId && !localIds.has(r.candidateId))
     .map(r => ({
       id: r.candidateId,
@@ -112,15 +116,80 @@ function renderCandidatesList(candidates) {
 }
 
 async function refreshCandidatesList() {
+  const auth = SYNC_CONFIG.webAppUrl ? getStaffAuth() : null;
   renderCandidatesList(listCandidates());
-  const all = await loadAllCandidates();
+  const all = await loadAllCandidates(auth);
   renderCandidatesList(all);
 }
 
-document.getElementById("addCandidateBtn").addEventListener("click", () => {
-  const id = generateCandidateId();
-  location.href = candidateUrl("rirekisho.html", id);
-});
+function showLoginGate(errorMessage) {
+  document.getElementById("candidatesMain").style.display = "none";
+  document.getElementById("loginGate").style.display = "flex";
+  document.getElementById("loginError").textContent = errorMessage || "";
+}
 
-migrateLegacyData();
-refreshCandidatesList();
+function showMain(auth) {
+  document.getElementById("loginGate").style.display = "none";
+  document.getElementById("candidatesMain").style.display = "block";
+  document.getElementById("loggedInAs").textContent = auth ? `ログイン中: ${auth.name}` : "";
+  refreshCandidatesList();
+}
+
+async function attemptLogin() {
+  const name = document.getElementById("loginName").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  if (!name || !password) {
+    showLoginGate("スタッフ名とパスワードを入力してください。");
+    return;
+  }
+  document.getElementById("loginError").textContent = "確認中...";
+  const result = await fetchCandidateListFromSheet(name, password);
+  if (!result.ok) {
+    showLoginGate("ログインできませんでした。スタッフ名・パスワードを確認してください。");
+    return;
+  }
+  setStaffAuth(name, password);
+  showMain({ name, password });
+}
+
+function bindLoginGateOnce() {
+  document.getElementById("loginBtn").addEventListener("click", attemptLogin);
+  document.getElementById("loginPassword").addEventListener("keydown", e => {
+    if (e.key === "Enter") attemptLogin();
+  });
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    clearStaffAuth();
+    showLoginGate();
+  });
+}
+
+async function initCandidatesPage() {
+  migrateLegacyData();
+  bindLoginGateOnce();
+  document.getElementById("addCandidateBtn").addEventListener("click", () => {
+    const id = generateCandidateId();
+    location.href = candidateUrl("rirekisho.html", id);
+  });
+
+  // Sync not configured: this is just a personal/local list, same as
+  // before login support existed — no staff account needed.
+  if (!SYNC_CONFIG.webAppUrl) {
+    showMain(null);
+    return;
+  }
+
+  const auth = getStaffAuth();
+  if (!auth) {
+    showLoginGate();
+    return;
+  }
+  const result = await fetchCandidateListFromSheet(auth.name, auth.password);
+  if (!result.ok) {
+    clearStaffAuth();
+    showLoginGate("ログインの有効期限が切れました。もう一度ログインしてください。");
+    return;
+  }
+  showMain(auth);
+}
+
+initCandidatesPage();
