@@ -1,0 +1,715 @@
+:root {
+  --color-bg: #f4f5f7;
+  --color-panel: #ffffff;
+  --color-border: #d6dae0;
+  --color-text: #222;
+  --color-muted: #6b7280;
+  --color-accent: #2f5d9c;
+  --color-accent-dark: #234872;
+  --color-danger: #c0392b;
+  --font-jp: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-jp);
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+a { color: var(--color-accent); }
+
+/* ---------- Header / Nav ---------- */
+.site-header {
+  background: var(--color-accent-dark);
+  color: #fff;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.site-header h1 {
+  font-size: 18px;
+  margin: 0;
+  font-weight: 600;
+}
+.site-header nav a {
+  color: #e8eef7;
+  text-decoration: none;
+  margin-left: 18px;
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+.site-header nav a:hover,
+.site-header nav a.active {
+  background: rgba(255,255,255,0.15);
+}
+
+/* ---------- Landing page ---------- */
+.landing {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+.landing h2 { font-size: 22px; }
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+.doc-card {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 22px;
+  text-decoration: none;
+  color: var(--color-text);
+  display: block;
+  transition: box-shadow .15s, transform .15s;
+}
+.doc-card:hover {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+.doc-card h3 { margin: 0 0 8px; color: var(--color-accent-dark); }
+.doc-card p { margin: 0; color: var(--color-muted); font-size: 14px; line-height: 1.6; }
+.notice-box {
+  margin-top: 28px;
+  background: #fff8e6;
+  border: 1px solid #f0d999;
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-size: 13px;
+  color: #6b5300;
+  line-height: 1.7;
+}
+
+/* ---------- Candidates list ---------- */
+.candidates-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.candidates-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.candidates-table th {
+  text-align: left;
+  background: #f4f5f7;
+  font-size: 13px;
+  color: var(--color-muted);
+  font-weight: 600;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+.candidates-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
+  vertical-align: middle;
+}
+.candidates-table tr:last-child td { border-bottom: none; }
+.candidates-updated { color: var(--color-muted); font-size: 13px; white-space: nowrap; }
+.candidates-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+.candidates-actions .btn { text-decoration: none; display: inline-block; }
+
+/* ---------- Editor layout ---------- */
+.editor-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 18px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.form-panel {
+  flex: 1 1 480px;
+  min-width: 360px;
+  max-width: 560px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 20px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  position: sticky;
+  top: 18px;
+}
+.preview-wrap {
+  flex: 2 1 700px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.remote-badge {
+  display: inline-block;
+  font-size: 10px;
+  color: #6b5a00;
+  background: #fff3c4;
+  border: 1px solid #e0c46c;
+  border-radius: 4px;
+  padding: 1px 5px;
+  vertical-align: middle;
+}
+.sync-notice {
+  background: #fff8e1;
+  border: 1px solid #e0c46c;
+  color: #6b5a00;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: -6px 0 14px;
+}
+.btn {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: var(--color-text);
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+}
+.btn:hover { background: #f0f2f5; }
+.btn-primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--color-accent-dark); }
+.btn-danger { color: var(--color-danger); border-color: #e6b3ac; }
+.btn-danger:hover { background: #fdecea; }
+.btn-small { padding: 4px 10px; font-size: 12px; }
+
+/* ---------- Form elements ---------- */
+.form-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 14px;
+  margin-top: 14px;
+}
+.form-section:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+.form-section.import-section {
+  background: #f0f6fb;
+  border: 1px solid #cfe0ee;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 6px;
+}
+.form-section.import-section:first-child { border: 1px solid #cfe0ee; padding: 12px; }
+.form-section h3 {
+  font-size: 14px;
+  color: var(--color-accent-dark);
+  margin: 0 0 10px;
+}
+.field-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 120px;
+}
+.field label {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.field input[type=text],
+.field input[type=date],
+.field input[type=tel],
+.field input[type=email],
+.field input[type=number],
+.field select,
+.field textarea {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  width: 100%;
+  background: #fff;
+}
+.field textarea { resize: vertical; min-height: 60px; }
+.checkbox-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.repeat-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+.repeat-table th {
+  font-size: 11px;
+  color: var(--color-muted);
+  text-align: left;
+  padding: 2px 4px;
+  font-weight: 500;
+}
+.repeat-table td {
+  padding: 2px;
+  vertical-align: top;
+}
+.repeat-table input {
+  width: 100%;
+  font-size: 13px;
+  padding: 6px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: inherit;
+}
+.repeat-table .col-year { width: 70px; }
+.repeat-table .col-month { width: 55px; }
+.repeat-table .col-remove { width: 28px; }
+.row-remove-btn {
+  border: none;
+  background: none;
+  color: var(--color-danger);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px;
+}
+.add-row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.photo-upload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.photo-preview-box {
+  width: 60px;
+  height: 80px;
+  border: 1px dashed var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--color-muted);
+  overflow: hidden;
+  background: #fafafa;
+}
+.photo-preview-box img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- Paper preview (shared look for screen + print) ---------- */
+.paper {
+  background: #fff;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 12mm 10mm;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.paper * { font-family: var(--font-jp); }
+
+.paper-title {
+  text-align: center;
+  font-size: 20px;
+  letter-spacing: 6px;
+  margin: 0 0 10px;
+  font-weight: 700;
+}
+.paper-date {
+  text-align: right;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+/* ---- rirekisho: fixed A4 pages ---- */
+.paper.paper-a4-fixed {
+  height: 297mm;
+  min-height: 297mm;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.page-number-tag {
+  text-align: center;
+  font-size: 11px;
+  color: var(--color-muted);
+  margin: -14px 0 6px;
+}
+.paper-a4-fixed .page-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 3mm;
+  flex: 0 0 auto;
+}
+.paper-a4-fixed .page-title-row .paper-title {
+  margin: 0;
+  text-align: left;
+  letter-spacing: 8px;
+  font-size: 22px;
+}
+.paper-a4-fixed .page-title-row .paper-date {
+  margin: 0;
+}
+.paper-fill-table {
+  flex: 1 1 0;
+  min-height: 0;
+  margin-bottom: 3mm;
+}
+.paper-fill-table table {
+  height: 100%;
+}
+
+table.basic-info {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin-bottom: 3mm;
+  flex: 0 0 auto;
+}
+table.basic-info td {
+  border: 1px solid #333;
+  padding: 3px 8px;
+  vertical-align: top;
+}
+/* white-space:nowrap turns a too-long value into *horizontal* overflow
+   (scrollWidth > clientWidth) instead of wrapping to a second line — table
+   cells silently grow their row to fit wrapped text even with a fixed
+   height+overflow:hidden, which would defeat shrink-to-fit's overflow check. */
+.furigana-cell { padding-bottom: 0 !important; border-bottom: 1px dashed #333 !important; height: 8mm; overflow: hidden; white-space: nowrap; vertical-align: middle; }
+.name-cell { padding-top: 2px !important; border-top: none !important; height: 20mm; overflow: hidden; vertical-align: middle; white-space: nowrap; }
+/* Fixed width so "ふりがな"(4 chars) and "氏名"(2 chars) labels leave their
+   values starting at the exact same x position, however long the label text is. */
+.field-label-inline { display: inline-block; width: 50px; vertical-align: middle; font-size: 10px; color: #444; }
+/* inline-block + an explicit width give these spans a real boundary of their
+   own to overflow against — without a set width, an inline-block just sizes
+   to fit its content, so it can never register as "overflowing" itself even
+   while the cell around it clips, which silently defeats shrink-to-fit. */
+.furigana-value {
+  display: inline-block;
+  width: calc(100% - 54px);
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: middle;
+  font-size: 12px;
+  color: #444;
+}
+.name-value {
+  display: inline-block;
+  width: calc(100% - 54px);
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: middle;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 3px;
+}
+.birth-cell {
+  height: 14mm;
+  overflow: hidden;
+  vertical-align: middle;
+  padding: 0 8px !important;
+}
+.birth-cell-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+.birth-date-text { font-size: 17px; white-space: nowrap; overflow: hidden; }
+.gender-value { white-space: nowrap; font-size: 15px; }
+.gender-selected {
+  display: inline-block;
+  border: 1.5px solid #333;
+  border-radius: 50%;
+  width: 1.6em;
+  height: 1.6em;
+  line-height: 1.6em;
+  text-align: center;
+}
+.label-cell { background: #f5f5f5; font-size: 10px; width: 70px; white-space: nowrap; }
+.photo-cell { width: 46mm; text-align: center; }
+.photo-frame {
+  width: 30mm;
+  height: 40mm;
+  border: 1px dashed #666;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 8px;
+  line-height: 1.6;
+  color: #888;
+  overflow: hidden;
+}
+.photo-frame img { width: 100%; height: 100%; object-fit: cover; }
+
+table.addr-box {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin-bottom: 2mm;
+  flex: 0 0 auto;
+}
+table.addr-box td {
+  border: 1px solid #333;
+  padding: 3px 8px;
+  vertical-align: top;
+  font-size: 12px;
+  overflow: hidden;
+}
+.addr-box .addr-furigana-row { height: 8mm; font-size: 10px; color: #444; padding-bottom: 0 !important; border-bottom: 1px dashed #333 !important; }
+.addr-box .addr-left { width: 68%; }
+.addr-box .addr-right { width: 32%; }
+/* A table cell's `height` alone is only a minimum in most browsers — long
+   content still grows the row. This inner block is the real, hard-clipped
+   frame for the address cell (its own height + overflow:hidden actually caps
+   it), which is what lets shrink-to-fit detect real overflow and react. */
+.addr-main-inner { height: 20mm; overflow: hidden; }
+/* Address text only (not the "現住所〒..." label, which stays at the default
+   12px). Sized and shrunk independently of the phone/email cell next to it. */
+.addr-value { display: inline-block; font-size: 15px; }
+.addr-note { font-size: 9px; color: #666; margin-left: 6px; }
+
+table.history-table, table.license-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+table.history-table th, table.license-table th {
+  border: 1px solid #333;
+  background: #f0f0f0;
+  font-size: 11px;
+  padding: 4px;
+  font-weight: 500;
+  height: 7mm;
+}
+table.history-table td, table.license-table td {
+  border: 1px solid #333;
+  padding: 2px 6px;
+  font-size: 12px;
+  overflow: hidden;
+}
+/* Forces browsers to distribute a height:100% table's leftover space evenly
+   across every row instead of dumping it all into a single row. */
+table.history-table tr, table.license-table tr {
+  height: 1%;
+}
+.col-year-p { width: 15%; text-align: center; }
+.col-month-p { width: 9%; text-align: center; }
+.history-row-center { text-align: center; font-weight: 600; }
+.history-row-end { text-align: right; padding-right: 12px !important; }
+
+.section-block {
+  margin-bottom: 2mm;
+  display: flex;
+  flex-direction: column;
+}
+.section-block.flex-fill { flex: 1 1 0; min-height: 0; margin-bottom: 3mm; }
+.section-block .section-heading {
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #333;
+  border-bottom: none;
+  padding: 3px 6px;
+  flex: 0 0 auto;
+}
+.section-block .section-body {
+  border: 1px solid #333;
+  flex: 1 1 auto;
+  min-height: 25mm;
+  white-space: pre-wrap;
+  font-size: 12px;
+  padding: 4px 6px;
+  overflow: hidden;
+}
+
+table.personal-request {
+  width: 100%;
+  border-collapse: collapse;
+}
+table.personal-request td {
+  border: 1px solid #333;
+  padding: 4px 6px;
+  font-size: 11px;
+}
+
+/* ---- shokumu keirekisho: paginated into A4 pages, same as rirekisho ---- */
+#pagesContainer {
+  --skm-accent: #1b4965;
+}
+
+.skm-header-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+.skm-header-meta {
+  text-align: right;
+  font-size: 12px;
+  color: #333;
+  line-height: 1.8;
+  margin-bottom: 18px;
+}
+
+.skm-section {
+  margin-bottom: 20px;
+}
+.skm-section-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--skm-accent);
+  border-bottom: 2px solid var(--skm-accent);
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+}
+.skm-body-text {
+  font-size: 12.5px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+}
+
+.skm-skill-card {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+  break-inside: avoid;
+}
+.skm-skill-title {
+  flex: 0 0 190px;
+  font-weight: 700;
+  color: var(--skm-accent);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.skm-skill-duration {
+  font-weight: 400;
+  color: #555;
+  font-size: 11px;
+}
+.skm-skill-desc {
+  flex: 1;
+  font-size: 12.5px;
+  line-height: 1.8;
+}
+
+.skm-job {
+  margin-bottom: 22px;
+  break-inside: avoid-page;
+}
+.skm-job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+  margin-bottom: 8px;
+}
+.skm-job-company { font-weight: 700; font-size: 14px; }
+.skm-job-period { font-size: 12px; color: #555; white-space: nowrap; }
+.skm-job-business {
+  background: #f4f7f8;
+  border: 1px solid #dde3e6;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.skm-job-achievements-heading {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--skm-accent);
+  margin-bottom: 6px;
+}
+.skm-job-achievements-heading::before { content: "✓ "; }
+
+.skm-role {
+  margin-bottom: 12px;
+  break-inside: avoid;
+}
+.skm-role-title { font-weight: 700; font-size: 12.5px; }
+.skm-role-title::before { content: "◇ "; color: var(--skm-accent); }
+.skm-role-period { font-size: 11px; color: #666; margin-left: 8px; font-weight: 400; }
+.skm-role-desc {
+  font-size: 12.5px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  margin-top: 2px;
+}
+
+.footer-note {
+  text-align: right;
+  font-size: 12px;
+  margin-top: 16px;
+}
+
+.empty-hint { color: #999; }
+
+/* ---------- Print ---------- */
+@media print {
+  body * { visibility: hidden; }
+  .site-header, .form-panel, .toolbar { display: none !important; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%;
+  }
+  .paper {
+    box-shadow: none;
+    width: auto;
+    min-height: auto;
+    margin: 0;
+    padding: 8mm 8mm;
+  }
+  .paper.paper-a4-fixed {
+    height: 297mm; /* border-box includes the 8mm padding, matches @page exactly */
+  }
+  .paper + .paper {
+    break-before: page;
+    page-break-before: always;
+  }
+  @page { size: A4; margin: 0; }
+}
+
+@media screen and (max-width: 1000px) {
+  .editor-layout { flex-direction: column; }
+  .form-panel { position: static; max-width: 100%; max-height: none; }
+  .paper { width: 100%; min-height: auto; }
+}

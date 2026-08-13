@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>求職者一覧 | 履歴書・職務経歴書 作成ツール</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <h1>履歴書・職務経歴書 作成ツール</h1>
+  <nav>
+    <a href="index.html">トップ</a>
+    <a href="candidates.html" class="active">求職者一覧</a>
+  </nav>
+</header>
+
+<main class="landing">
+  <div class="candidates-toolbar">
+    <h2 style="margin:0;">求職者一覧</h2>
+    <button class="btn btn-primary" id="addCandidateBtn">+ 新しい求職者を追加</button>
+  </div>
+
+  <div id="emptyState" class="notice-box" style="display:none;">
+    まだ求職者が登録されていません。「+ 新しい求職者を追加」から始めてください。
+  </div>
+
+  <table class="candidates-table" id="candidatesTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>氏名</th>
+        <th>更新日時</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="candidatesBody"></tbody>
+  </table>
+</main>
+
+<script src="js/storage.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/candidates.js"></script>
+</body>
+</html>

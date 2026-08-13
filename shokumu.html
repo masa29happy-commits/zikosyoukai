@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>職務経歴書作成 | 履歴書・職務経歴書 作成ツール</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <h1>履歴書・職務経歴書 作成ツール</h1>
+  <nav>
+    <a href="index.html">トップ</a>
+    <a href="candidates.html">求職者一覧</a>
+    <a href="rirekisho.html" id="navRirekisho">履歴書</a>
+    <a href="shokumu.html" class="active" id="navShokumu">職務経歴書</a>
+  </nav>
+</header>
+
+<div class="editor-layout">
+  <!-- ===== 入力フォーム ===== -->
+  <div class="form-panel">
+    <div class="toolbar">
+      <button class="btn btn-primary" id="printBtn">印刷 / PDF保存</button>
+      <button class="btn btn-danger" id="clearBtn">入力内容をクリア</button>
+    </div>
+
+    <div class="form-section">
+      <h3>作成日・氏名</h3>
+      <div class="field-row">
+        <div class="field">
+          <label>作成日</label>
+          <input type="date" id="createDate">
+        </div>
+        <div class="field">
+          <label>氏名</label>
+          <input type="text" id="fullName" placeholder="山田 太郎">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>経歴要約</h3>
+      <div class="field-row">
+        <div class="field">
+          <textarea id="summary" rows="5" placeholder="これまでの経歴を3〜5行程度で要約します"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>活かせるスキル・経験</h3>
+      <div id="skillList"></div>
+      <div class="add-row-actions">
+        <button class="btn btn-small" id="addSkillBtn" type="button">+ スキルを追加</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>職歴</h3>
+      <div id="jobList"></div>
+      <div class="add-row-actions">
+        <button class="btn btn-small" id="addJobBtn" type="button">+ 職歴(会社)を追加</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>自己PR</h3>
+      <div class="field-row">
+        <div class="field">
+          <textarea id="selfPr" rows="6"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== プレビュー(内容に応じてA4ページ数が増減) ===== -->
+  <div class="preview-wrap">
+    <div id="printArea">
+      <div id="pagesContainer"></div>
+    </div>
+  </div>
+</div>
+
+<template id="skillEntryTemplate">
+  <div class="skill-entry-form form-section">
+    <div class="field-row">
+      <div class="field">
+        <label>スキル・経験名</label>
+        <input type="text" class="skill-title" placeholder="例: 提案力・コミュニケーション力">
+      </div>
+      <div class="field" style="max-width:160px;">
+        <label>経験年数など</label>
+        <input type="text" class="skill-duration" placeholder="実務経験5年以上">
+      </div>
+      <button class="btn btn-small btn-danger skill-remove-btn" type="button">削除</button>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>説明</label>
+        <textarea class="skill-description" rows="3" placeholder="具体的なエピソードや実績を記載します"></textarea>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="jobEntryTemplate">
+  <div class="job-entry-form form-section">
+    <div class="field-row">
+      <div class="field">
+        <label>会社名</label>
+        <input type="text" class="job-company" placeholder="株式会社〇〇">
+      </div>
+      <button class="btn btn-small btn-danger job-remove-btn" type="button">この会社を削除</button>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>在籍期間(開始)</label>
+        <input type="month" class="job-start">
+      </div>
+      <div class="field">
+        <label>在籍期間(終了)</label>
+        <input type="month" class="job-end">
+      </div>
+      <label class="checkbox-line" style="align-items:center;">
+        <input type="checkbox" class="job-current"> 在籍中
+      </label>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>事業内容</label>
+        <input type="text" class="job-business" placeholder="例: 建設資材の卸売業">
+      </div>
+    </div>
+    <div class="role-list"></div>
+    <div class="add-row-actions">
+      <button class="btn btn-small role-add-btn" type="button">+ 役職・実績を追加</button>
+    </div>
+  </div>
+</template>
+
+<template id="roleEntryTemplate">
+  <div class="role-entry-form" style="border-top:1px dashed var(--color-border); padding-top:8px; margin-top:8px;">
+    <div class="field-row">
+      <div class="field">
+        <label>役職・担当業務</label>
+        <input type="text" class="role-title" placeholder="例: メンズ脱毛サロン運営・店舗管理業務">
+      </div>
+      <button class="btn btn-small btn-danger role-remove-btn" type="button">削除</button>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>期間(開始)</label>
+        <input type="month" class="role-start">
+      </div>
+      <div class="field">
+        <label>期間(終了)</label>
+        <input type="month" class="role-end">
+      </div>
+      <label class="checkbox-line" style="align-items:center;">
+        <input type="checkbox" class="role-current"> 在籍中
+      </label>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>業務内容・実績</label>
+        <textarea class="role-description" rows="4" placeholder="担当業務の内容や実績を具体的に記載します"></textarea>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script src="js/storage.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/shokumu.js"></script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>履歴書作成 | 履歴書・職務経歴書 作成ツール</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <h1>履歴書・職務経歴書 作成ツール</h1>
+  <nav>
+    <a href="index.html">トップ</a>
+    <a href="candidates.html">求職者一覧</a>
+    <a href="rirekisho.html" class="active" id="navRirekisho">履歴書</a>
+    <a href="shokumu.html" id="navShokumu">職務経歴書</a>
+  </nav>
+</header>
+
+<div class="editor-layout">
+  <!-- ===== 入力フォーム ===== -->
+  <div class="form-panel">
+    <div class="toolbar">
+      <button class="btn btn-primary" id="printBtn">印刷 / PDF保存</button>
+      <button class="btn btn-danger" id="clearBtn">入力内容をクリア</button>
+    </div>
+
+    <div class="form-section import-section">
+      <h3>既存の履歴書から自動入力 <span style="font-weight:400;color:#888;">(実験的機能)</span></h3>
+      <p style="font-size:12px;color:#888;margin:0 0 8px;line-height:1.6;">
+        PDFまたは画像(写真・スキャン)を読み込み、氏名・住所・学歴職歴などを自動入力します。パターン一致による推測なので誤読することがあります。手書き文書の認識精度は高くありません。入力後は必ず内容を確認してください。データは外部に送信されず、ブラウザ内だけで処理されます(AI・課金は使っていません)。<br>
+        <strong>注意:</strong> この機能を使うには、htmlファイルを直接ダブルクリックするのではなく、フォルダ内の「サイトを開く.bat」から開いてください(ブラウザの仕様で、直接開いた場合はこの機能だけ動作しません)。
+      </p>
+      <div class="field-row">
+        <input type="file" id="importFileInput" accept="application/pdf,image/*">
+      </div>
+      <div class="add-row-actions">
+        <button class="btn btn-small btn-primary" id="importFileBtn" type="button">読み込んで自動入力</button>
+      </div>
+      <div id="importStatus" style="font-size:12px;color:#555;margin-top:6px;"></div>
+    </div>
+
+    <div class="form-section">
+      <h3>作成日</h3>
+      <div class="field-row">
+        <div class="field">
+          <label>年月日</label>
+          <input type="date" id="createDate">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>証明写真(任意) <span style="font-weight:400;color:#888;">縦36〜40mm × 横24〜30mm</span></h3>
+      <div class="photo-upload">
+        <div class="photo-preview-box" id="photoPreviewBox">未設定</div>
+        <input type="file" id="photoInput" accept="image/*">
+        <button class="btn btn-small" id="photoRemoveBtn" type="button">削除</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>氏名</h3>
+      <div class="field-row">
+        <div class="field">
+          <label>ふりがな</label>
+          <input type="text" id="furigana" placeholder="やまだ たろう">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>氏名</label>
+          <input type="text" id="fullName" placeholder="山田 太郎">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>生年月日</label>
+          <input type="date" id="birthDate">
+        </div>
+        <div class="field" style="max-width:120px;">
+          <label>性別</label>
+          <select id="gender">
+            <option value="">未選択</option>
+            <option value="男">男</option>
+            <option value="女">女</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>現住所</h3>
+      <div class="field-row">
+        <div class="field">
+          <label>ふりがな</label>
+          <input type="text" id="addressCurrentFurigana">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>郵便番号 <span style="font-weight:400;color:#888;">(入力すると住所を自動検索)</span></label>
+          <input type="text" id="zipCurrent" placeholder="123-4567">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>住所</label>
+          <input type="text" id="addressCurrent" placeholder="東京都〇〇区〇〇1-2-3">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>電話番号</label>
+          <input type="tel" id="phoneCurrent" placeholder="090-1234-5678">
+        </div>
+        <div class="field">
+          <label>メールアドレス</label>
+          <input type="email" id="emailCurrent">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>連絡先 <span style="font-weight:400;color:#888;">(現住所以外に連絡を希望する場合のみ)</span></h3>
+      <div class="field-row">
+        <div class="field">
+          <label>ふりがな</label>
+          <input type="text" id="addressContactFurigana">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>郵便番号 <span style="font-weight:400;color:#888;">(入力すると住所を自動検索)</span></label>
+          <input type="text" id="zipContact">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>住所</label>
+          <input type="text" id="addressContact">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>電話番号</label>
+          <input type="tel" id="phoneContact">
+        </div>
+        <div class="field">
+          <label>メールアドレス</label>
+          <input type="email" id="emailContact">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>学歴 <span style="font-weight:400;color:#888;">(プレビューで「学歴」の見出し行が自動的に付きます)</span></h3>
+      <table class="repeat-table" id="educationTable">
+        <thead>
+          <tr>
+            <th class="col-year">年</th>
+            <th class="col-month">月</th>
+            <th>学歴</th>
+          </tr>
+        </thead>
+        <tbody id="educationBody"></tbody>
+      </table>
+      <div class="add-row-actions">
+        <button class="btn btn-small" id="addEducationRowBtn" type="button">+ 行を追加</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>職歴 <span style="font-weight:400;color:#888;">(プレビューで「職歴」の見出し行が自動的に付きます)</span></h3>
+      <table class="repeat-table" id="workHistoryTable">
+        <thead>
+          <tr>
+            <th class="col-year">年</th>
+            <th class="col-month">月</th>
+            <th>職歴</th>
+          </tr>
+        </thead>
+        <tbody id="workHistoryBody"></tbody>
+      </table>
+      <div class="add-row-actions">
+        <button class="btn btn-small" id="addWorkHistoryRowBtn" type="button">+ 行を追加</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>免許・資格 <span style="font-weight:400;color:#888;">(印刷では最大6行分の罫線を表示)</span></h3>
+      <table class="repeat-table" id="licenseTable">
+        <thead>
+          <tr>
+            <th class="col-year">年</th>
+            <th class="col-month">月</th>
+            <th>免許・資格</th>
+          </tr>
+        </thead>
+        <tbody id="licenseBody"></tbody>
+      </table>
+      <div class="add-row-actions">
+        <button class="btn btn-small" id="addLicenseRowBtn" type="button">+ 行を追加</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>志望動機・特技・アピールポイントなど</h3>
+      <div class="field-row">
+        <div class="field">
+          <textarea id="motivation" rows="6"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h3>本人希望記入欄</h3>
+      <div class="field-row">
+        <div class="field">
+          <label>特に給料・職種・勤務時間・勤務地・その他について希望があれば記入</label>
+          <textarea id="requests" rows="4"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== プレビュー(A4 2ページ) ===== -->
+  <div class="preview-wrap">
+    <div id="printArea">
+      <div class="paper paper-a4-fixed" id="paper1"></div>
+      <div class="paper paper-a4-fixed" id="paper2"></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/resume-parser.js"></script>
+<script src="js/rirekisho.js"></script>
+</body>
+</html>
