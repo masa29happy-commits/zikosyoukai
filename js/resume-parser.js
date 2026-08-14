@@ -339,5 +339,46 @@ function parseResumeText(text) {
     }
   });
 
+  result.workHistoryRows = consolidateJoinLeavePairs(result.workHistoryRows);
+
   return result;
+}
+
+// Merges an "入社/入職" row immediately followed by the matching "退社/退職"
+// row for the same employer into one row (e.g. "◯◯ 入社（同年3月 一身上の
+// 都合により退社）"), the same style resumes already use when someone left
+// within the same reporting block. This halves the row count for anyone
+// with a long work history, which matters because the printed form only has
+// room for a fixed number of combined education+work rows.
+function consolidateJoinLeavePairs(rows) {
+  const JOIN_RE = /(入社|入職)/;
+  const LEAVE_RE = /(退社|退職)/;
+  const merged = [];
+  let i = 0;
+  while (i < rows.length) {
+    const row = rows[i];
+    const next = rows[i + 1];
+    const joinMatch = row.text.match(JOIN_RE);
+    if (joinMatch && !LEAVE_RE.test(row.text) && next) {
+      const leaveMatch = next.text.match(LEAVE_RE);
+      if (leaveMatch && !JOIN_RE.test(next.text)) {
+        const company = row.text.slice(0, joinMatch.index).trim();
+        const nextPrefix = next.text.slice(0, leaveMatch.index).replace(/一身上の都合により$/, "").trim();
+        if (company && (nextPrefix === company || nextPrefix.startsWith(company))) {
+          const sameYear = row.year === next.year;
+          const remainder = next.text.slice(company.length).trim();
+          merged.push({
+            year: row.year,
+            month: row.month,
+            text: `${company} ${joinMatch[1]}（${sameYear ? "同年" : next.year + "年"}${next.month}月 ${remainder}）`
+          });
+          i += 2;
+          continue;
+        }
+      }
+    }
+    merged.push(row);
+    i += 1;
+  }
+  return merged;
 }

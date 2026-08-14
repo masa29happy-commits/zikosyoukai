@@ -305,16 +305,24 @@ function bindAddRowButtonsOnce() {
 }
 
 // ---------- Import from an existing resume file (PDF/image, no AI) ----------
-// Fills blank rows first, then appends new ones, without exceeding the given cap.
+// Fills blank rows first, then appends new ones, without exceeding the given
+// cap. Returns how many of newRows were actually applied, since blank rows
+// get reused for free (not counted against the cap) and callers need to know
+// how many were left out to warn about it.
 function mergeRows(targetArray, newRows, cap) {
+  let applied = 0;
   newRows.forEach(row => {
     if (targetArray.length >= cap) return;
     const blankIdx = targetArray.findIndex(r => !r.year && !r.month && !r.text);
     if (blankIdx >= 0) targetArray[blankIdx] = row;
     else targetArray.push(row);
+    applied++;
   });
+  return applied;
 }
 
+// Returns how many parsed rows didn't fit and were left out, so the caller
+// can warn about it instead of silently dropping them.
 function applyParsedFields(parsed) {
   ["fullName", "furigana", "birthDate", "zipCurrent", "addressCurrent", "addressCurrentFurigana", "phoneCurrent", "emailCurrent"].forEach(key => {
     if (parsed[key] && !state[key]) state[key] = parsed[key];
@@ -324,12 +332,16 @@ function applyParsedFields(parsed) {
   if (parsed.birthDate && parsed.educationRows.length === 0) {
     fillHighSchoolDatesFromBirthdate();
   }
+  // historyRoomLeft() is passed as each call's cap, not used to pre-slice the
+  // input — mergeRows already reuses blank rows for free, so pre-slicing off
+  // of it would cut rows that would actually still have fit.
   const historyRoomLeft = () => Math.max(0, HISTORY_ENTRIES_MAX - state.education.length - state.workHistory.length);
-  mergeRows(state.education, parsed.educationRows.slice(0, historyRoomLeft()), state.education.length + historyRoomLeft());
-  mergeRows(state.workHistory, parsed.workHistoryRows.slice(0, historyRoomLeft()), state.workHistory.length + historyRoomLeft());
-  mergeRows(state.licenses, parsed.licenseRows, LICENSE_ROWS_MAX);
+  const eduApplied = mergeRows(state.education, parsed.educationRows, state.education.length + historyRoomLeft());
+  const workApplied = mergeRows(state.workHistory, parsed.workHistoryRows, state.workHistory.length + historyRoomLeft());
+  const licenseApplied = mergeRows(state.licenses, parsed.licenseRows, LICENSE_ROWS_MAX);
   persistDebounced();
   refreshForm();
+  return (parsed.educationRows.length - eduApplied) + (parsed.workHistoryRows.length - workApplied) + (parsed.licenseRows.length - licenseApplied);
 }
 
 function bindImportOnce() {
@@ -363,8 +375,10 @@ function bindImportOnce() {
         statusEl.textContent = "項目を検出できませんでした。手入力をお願いします。";
         return;
       }
-      applyParsedFields(parsed);
-      statusEl.textContent = "自動入力しました。誤読の可能性があるので、内容を必ず確認してください。";
+      const droppedCount = applyParsedFields(parsed);
+      statusEl.textContent = droppedCount > 0
+        ? `自動入力しました。学歴・職歴・免許資格欄の上限を超えたため、${droppedCount}件は反映できませんでした。内容を確認し、必要な項目は手動で追記してください。`
+        : "自動入力しました。誤読の可能性があるので、内容を必ず確認してください。";
     } catch (e) {
       console.error(e);
       statusEl.textContent = "読み込みに失敗しました: " + e.message;
