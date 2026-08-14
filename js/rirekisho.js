@@ -332,6 +332,16 @@ function applyParsedFields(parsed) {
   if (parsed.birthDate && parsed.educationRows.length === 0) {
     fillHighSchoolDatesFromBirthdate();
   }
+  // One row per join/leave event reads more normally, so only fall back to
+  // merging join/leave pairs (see consolidateJoinLeavePairs) when the raw,
+  // one-event-per-row count actually wouldn't fit the form's fixed capacity —
+  // most resumes never hit this. Blank placeholder rows don't count against
+  // existing usage since mergeRows reuses them for free below.
+  const nonBlankCount = rows => rows.filter(r => r.year || r.month || r.text).length;
+  const existingNonBlank = nonBlankCount(state.education) + nonBlankCount(state.workHistory);
+  if (parsed.educationRows.length + parsed.workHistoryRows.length > HISTORY_ENTRIES_MAX - existingNonBlank) {
+    parsed.workHistoryRows = consolidateJoinLeavePairs(parsed.workHistoryRows);
+  }
   // historyRoomLeft() is passed as each call's cap, not used to pre-slice the
   // input — mergeRows already reuses blank rows for free, so pre-slicing off
   // of it would cut rows that would actually still have fit.

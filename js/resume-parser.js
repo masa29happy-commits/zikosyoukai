@@ -339,8 +339,10 @@ function parseResumeText(text) {
     }
   });
 
-  result.workHistoryRows = consolidateJoinLeavePairs(result.workHistoryRows);
-
+  // Left as separate one-event-per-row entries here — merging is only applied
+  // later (see rirekisho.js's applyParsedFields), and only when the raw row
+  // count actually needs it to fit the form's fixed capacity. Most resumes
+  // don't need it, and one row per join/leave event reads more normally.
   return result;
 }
 
