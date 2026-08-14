@@ -78,6 +78,15 @@ function loadPdfJs() {
   return pdfjsLibPromise;
 }
 
+// A page much wider than a single A4/Letter sheet (e.g. 1191pt-wide A3
+// landscape, exactly two A4 sheets side by side — a common way to export a
+// normal 2-page rirekisho as one printable sheet) needs its left and right
+// halves treated as two independent pages. Otherwise the row-reconstruction
+// below (which groups text into lines by shared Y-position) merges an item
+// from the left sheet with an unrelated item from the right sheet just
+// because they happen to sit at the same height, scrambling both halves.
+const WIDE_PAGE_THRESHOLD = 1000;
+
 async function extractTextItemsFromPdf(file) {
   const pdfjsLib = await loadPdfJs();
   const buf = await file.arrayBuffer();
@@ -87,9 +96,12 @@ async function extractTextItemsFromPdf(file) {
     const page = await doc.getPage(pageNum);
     const viewport = page.getViewport({ scale: 1 });
     const content = await page.getTextContent();
+    const isWide = viewport.width > WIDE_PAGE_THRESHOLD;
+    const midX = viewport.width / 2;
     content.items.forEach(item => {
       if (!item.str || !item.str.trim()) return;
       const fontSize = Math.hypot(item.transform[0], item.transform[1]) || 0;
+      const x = item.transform[4];
       items.push({
         // Some PDF generators pad digits with literal space characters within
         // a single text run for visual justification (e.g. "1 9 9 9" instead
@@ -98,11 +110,15 @@ async function extractTextItemsFromPdf(file) {
         // safe — it can't accidentally bridge two genuinely separate fields,
         // which always arrive as separate items.
         text: item.str.replace(/(\d)\s+(?=\d)/g, "$1"),
-        x: item.transform[4],
+        x,
         y: viewport.height - item.transform[5],
         width: item.width || 0,
         fontSize,
-        page: pageNum
+        // Encoding left/right half into the page number (rather than a
+        // separate field) means the existing sort-by-page-then-y ordering
+        // in itemsToPlainText automatically emits "all of the left sheet,
+        // then all of the right sheet" with no other changes needed there.
+        page: isWide ? pageNum * 2 + (x < midX ? 0 : 1) : pageNum * 2
       });
     });
   }
