@@ -49,6 +49,13 @@ function syncToSheet(key, data) {
   } else {
     return;
   }
+  // Skip syncing a still-essentially-blank candidate — just opening a link
+  // (e.g. a job-seeker clicking a shared link, or creating a new candidate
+  // from candidates.html) already saves locally and would otherwise post an
+  // empty, unassignable row to the sheet before anyone's actually written
+  // anything. Once real content shows up, this same key's later saves update
+  // that one row (matched by candidateId) rather than adding another.
+  if (!(data && data.fullName && data.fullName.trim())) return;
   const auth = getStaffAuth();
 
   // mode:"no-cors" + Content-Type:"text/plain" keeps this a CORS "simple
