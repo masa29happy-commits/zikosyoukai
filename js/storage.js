@@ -30,6 +30,19 @@ function debounce(fn, wait) {
   };
 }
 
+// Chrome/Safari/Firefox all suggest the current document.title (sanitized
+// for the filesystem) as the default filename when "印刷/PDF保存" is used
+// with the "PDFに保存" destination — so setting the title to "氏名_書類名"
+// right before printing is what makes the saved file come out named that
+// way, with no actual PDF-generation code involved.
+function printWithFilename(fullName, docLabel) {
+  const original = document.title;
+  const safeName = (fullName || "").replace(/[\\/:*?"<>|]/g, "").trim();
+  if (safeName) document.title = `${safeName}_${docLabel}`;
+  window.print();
+  document.title = original;
+}
+
 function escapeHtml(str) {
   if (str === undefined || str === null) return "";
   return String(str)

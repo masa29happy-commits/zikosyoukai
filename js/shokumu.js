@@ -427,7 +427,7 @@ function renderPreview() {
 
 // ---------- Toolbar ----------
 function bindToolbar() {
-  document.getElementById("printBtn").addEventListener("click", () => window.print());
+  document.getElementById("printBtn").addEventListener("click", () => printWithFilename(state.fullName, "職務経歴書"));
   document.getElementById("clearBtn").addEventListener("click", () => {
     if (!confirm("入力内容をすべてクリアします。よろしいですか?")) return;
     Storage.clear(STORAGE_KEY);
