@@ -271,7 +271,12 @@ function parseResumeText(rawText) {
   const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
   if (emailMatch) result.emailCurrent = emailMatch[0];
 
-  const phoneMatch = text.match(/0\d{1,4}-\d{1,4}-\d{3,4}/);
+  // Falls back to a bare 10-11 digit run (mobile numbers are always written
+  // as exactly 11 digits, landlines as exactly 10, whatever the area code
+  // length) when no dashed number is found — some templates write phone
+  // numbers as one unbroken string of digits. The exact digit count rules
+  // out a false match on a 7-digit zip code, so this can't misfire there.
+  const phoneMatch = text.match(/0\d{1,4}-\d{1,4}-\d{3,4}/) || text.match(/\b0\d{9,10}\b/);
   if (phoneMatch) result.phoneCurrent = phoneMatch[0];
 
   // Prefer a zip code that's actually marked with the postal-mark 〒 (avoids
@@ -297,6 +302,7 @@ function parseResumeText(rawText) {
       .replace(/\s*電話[:：]?\s*0[\d\-]{8,}.*$/, "")
       .replace(/\s*[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}.*$/, "")
       .replace(/\s*0\d{1,4}-\d{1,4}-\d{3,4}.*$/, "")
+      .replace(/\s*\b0\d{9,10}\b.*$/, "")
       .trim();
   }
 
@@ -313,9 +319,16 @@ function parseResumeText(rawText) {
   // wrapped address (the address cell spans more lines than the row it's
   // next to), so these are skipped rather than treated as the end of the
   // address.
-  const ADDR_BOUNDARY_RE = /^(ふりがな|連絡先|現住所|〒|学歴|職歴|免許|志望動機|本人希望|以上)/;
+  // Some templates space out 2-character labels for visual alignment
+  // ("学 歴" instead of "学歴"), so allow an optional space in each.
+  const ADDR_BOUNDARY_RE = /^(ふりがな|連絡先|現\s?住\s?所|〒|学\s?歴|職\s?歴|免許|志望動機|本人希望|以上|同上)/;
   const EMAIL_ONLY_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  const PHONE_ONLY_RE = /^0\d{1,4}-\d{1,4}-\d{3,4}$/;
+  const PHONE_ONLY_RE = /^0\d{1,4}-?\d{1,4}-?\d{3,4}$|^0\d{9,10}$/;
+  // Bare contact-info labels with no value on their own line — templates
+  // vary in wording ("携帯番号" vs "電話", "e-mail" vs "Email"), so this is
+  // intentionally case-insensitive and covers the common variants rather
+  // than one exact string.
+  const CONTACT_LABEL_ONLY_RE = /^(e[-‐]?mail|電話|電話番号|携帯|携帯番号|tel)$/i;
 
   lines.forEach((line, idx) => {
     if (historyLineRe.test(line)) return;
@@ -324,7 +337,7 @@ function parseResumeText(rawText) {
     let candidate = stripTrailingContactInfo(line.slice(line.indexOf(pref)).replace(/^〒?\d{3}-?\d{4}\s*/, ""));
     for (let j = idx + 1; j < Math.min(idx + 5, lines.length); j++) {
       const next = lines[j];
-      if (EMAIL_ONLY_RE.test(next) || PHONE_ONLY_RE.test(next) || next === "Email" || next === "電話") continue;
+      if (EMAIL_ONLY_RE.test(next) || PHONE_ONLY_RE.test(next) || CONTACT_LABEL_ONLY_RE.test(next)) continue;
       if (ADDR_BOUNDARY_RE.test(next) || historyLineRe.test(next)) break;
       candidate += next;
     }
