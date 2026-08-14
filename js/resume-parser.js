@@ -334,7 +334,7 @@ function parseResumeText(text) {
       result.educationRows.push(row);
     } else if (/(免許|資格|取得|検定|級|TOEIC)/.test(trimmedContent)) {
       result.licenseRows.push(row);
-    } else if (/(株式会社|有限会社|合同会社|入社|退社|退職|勤務|配属)/.test(trimmedContent)) {
+    } else if (/(株式会社|有限会社|合同会社|学校法人|社会福祉法人|特定非営利活動法人|NPO法人|一般社団法人|一般財団法人|公益社団法人|公益財団法人|医療法人|入社|入職|退社|退職|勤務|配属)/.test(trimmedContent)) {
       result.workHistoryRows.push(row);
     }
   });
