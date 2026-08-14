@@ -229,7 +229,22 @@ const JP_PREFECTURES = [
   "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
 ];
 
-function parseResumeText(text) {
+// Converts Japanese era years (令和/平成/昭和/大正) to their Western-calendar
+// equivalent (e.g. "令和5" -> "2023") so the rest of the parser — which
+// otherwise only recognizes \d{4} western years — can read dates from
+// resumes written in era notation, which is at least as common as western
+// years on real Japanese documents. "元年" (the era's first year) is handled
+// as year 1.
+const ERA_START_YEAR = { "令和": 2018, "平成": 1988, "昭和": 1925, "大正": 1911 };
+function convertEraYears(text) {
+  return text.replace(/(令和|平成|昭和|大正)(元|\d{1,2})/g, (match, era, num) => {
+    const n = num === "元" ? 1 : parseInt(num, 10);
+    return String(ERA_START_YEAR[era] + n);
+  });
+}
+
+function parseResumeText(rawText) {
+  const text = convertEraYears(rawText);
   const result = {
     fullName: "", furigana: "", birthDate: "",
     zipCurrent: "", addressCurrent: "", addressCurrentFurigana: "", phoneCurrent: "", emailCurrent: "",
@@ -303,14 +318,32 @@ function parseResumeText(text) {
   // Lines that are clearly template chrome, not a name, even if they end up
   // right after the "名前" label due to imperfect line reconstruction.
   const isNameNoise = l => /ふりがな|生年月日|証明写真|mm|単身|裏面|のりづけ/.test(l);
-  const nameLabelIdx = lines.findIndex(l => /^(氏名|名前)[:：\s]/.test(l) || /^(氏名|名前)$/.test(l));
+  // Some templates space out a 2-character label for visual alignment
+  // ("氏 名" instead of "氏名"), so allow an optional space between the two.
+  const NAME_LABEL_RE = /^(氏\s?名|名\s?前)/;
+  const nameLabelIdx = lines.findIndex(l => NAME_LABEL_RE.test(l));
   if (nameLabelIdx >= 0) {
-    const sameLine = lines[nameLabelIdx].replace(/^(氏名|名前)[:：]?\s*/, "").trim();
+    const sameLine = lines[nameLabelIdx].replace(NAME_LABEL_RE, "").replace(/^[:：]?\s*/, "").trim();
     if (sameLine && sameLine !== lines[nameLabelIdx] && !isNameNoise(sameLine)) {
       result.fullName = sameLine;
     } else {
       for (let i = nameLabelIdx + 1; i < Math.min(nameLabelIdx + 4, lines.length); i++) {
         if (lines[i] && !isNameNoise(lines[i])) { result.fullName = lines[i]; break; }
+      }
+    }
+  } else {
+    // No "氏名"/"名前" label at all — some templates just print the reading
+    // then the kanji name, unlabeled. Look for that pair (a kana-only line
+    // immediately followed by a line containing kanji) near the very top of
+    // the document, before any address/birthdate content would start, so
+    // this can't accidentally grab the *address* furigana instead (which
+    // always appears later, after the name/birthdate block).
+    const headerEnd = Math.min(6, lines.length);
+    for (let i = 0; i < headerEnd - 1; i++) {
+      if (/^[ぁ-んァ-ヶーゝゞ\s]{2,20}$/.test(lines[i]) && /[一-龠]/.test(lines[i + 1])) {
+        result.furigana = lines[i];
+        result.fullName = lines[i + 1];
+        break;
       }
     }
   }
