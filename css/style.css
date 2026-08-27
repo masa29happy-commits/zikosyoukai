@@ -314,6 +314,7 @@ a { color: var(--color-accent); }
 .repeat-table .col-year { width: 70px; }
 .repeat-table .col-month { width: 55px; }
 .repeat-table .col-remove { width: 28px; }
+.repeat-table .col-order { width: 52px; }
 .row-remove-btn {
   border: none;
   background: none;
@@ -323,6 +324,21 @@ a { color: var(--color-accent); }
   line-height: 1;
   padding: 4px;
 }
+.row-order-cell { white-space: nowrap; text-align: center; }
+.btn-row-order {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  padding: 0;
+}
+.btn-row-order:disabled { opacity: 0.3; cursor: default; }
+.btn-row-order + .btn-row-order { margin-left: 2px; }
 .add-row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .photo-upload {

@@ -219,7 +219,10 @@ function bindPhotoOnce() {
 }
 
 // ---------- Fixed-grid repeat tables (history / licenses) ----------
-function renderFixedTable(bodyEl, rows, textPlaceholder) {
+// refreshTable re-renders this same table (and its "+行を追加" button state)
+// after a reorder — passing the table's own bind*Table function back in is
+// what makes the swap show up immediately.
+function renderFixedTable(bodyEl, rows, textPlaceholder, refreshTable) {
   bodyEl.innerHTML = "";
   rows.forEach((row, idx) => {
     const tr = document.createElement("tr");
@@ -248,9 +251,39 @@ function renderFixedTable(bodyEl, rows, textPlaceholder) {
     textInput.addEventListener("input", () => { row.text = textInput.value; persistDebounced(); renderPreview(); });
     textTd.appendChild(textInput);
 
+    const orderTd = document.createElement("td");
+    orderTd.className = "row-order-cell";
+    const upBtn = document.createElement("button");
+    upBtn.type = "button";
+    upBtn.className = "btn-row-order";
+    upBtn.textContent = "↑";
+    upBtn.title = "上の行と入れ替え";
+    upBtn.disabled = idx === 0;
+    upBtn.addEventListener("click", () => {
+      [rows[idx - 1], rows[idx]] = [rows[idx], rows[idx - 1]];
+      persistDebounced();
+      refreshTable();
+      renderPreview();
+    });
+    const downBtn = document.createElement("button");
+    downBtn.type = "button";
+    downBtn.className = "btn-row-order";
+    downBtn.textContent = "↓";
+    downBtn.title = "下の行と入れ替え";
+    downBtn.disabled = idx === rows.length - 1;
+    downBtn.addEventListener("click", () => {
+      [rows[idx], rows[idx + 1]] = [rows[idx + 1], rows[idx]];
+      persistDebounced();
+      refreshTable();
+      renderPreview();
+    });
+    orderTd.appendChild(upBtn);
+    orderTd.appendChild(downBtn);
+
     tr.appendChild(yearTd);
     tr.appendChild(monthTd);
     tr.appendChild(textTd);
+    tr.appendChild(orderTd);
     bodyEl.appendChild(tr);
   });
 }
@@ -261,19 +294,19 @@ function updateAddButtonState(buttonEl, currentLength, max, label) {
 }
 
 function bindEducationTable() {
-  renderFixedTable(document.getElementById("educationBody"), state.education, "〇〇高等学校 卒業");
+  renderFixedTable(document.getElementById("educationBody"), state.education, "〇〇高等学校 卒業", bindEducationTable);
   const total = state.education.length + state.workHistory.length;
   updateAddButtonState(document.getElementById("addEducationRowBtn"), total, HISTORY_ENTRIES_MAX, "学歴+職歴で");
 }
 
 function bindWorkHistoryTable() {
-  renderFixedTable(document.getElementById("workHistoryBody"), state.workHistory, "株式会社〇〇 入社");
+  renderFixedTable(document.getElementById("workHistoryBody"), state.workHistory, "株式会社〇〇 入社", bindWorkHistoryTable);
   const total = state.education.length + state.workHistory.length;
   updateAddButtonState(document.getElementById("addWorkHistoryRowBtn"), total, HISTORY_ENTRIES_MAX, "学歴+職歴で");
 }
 
 function bindLicenseTable() {
-  renderFixedTable(document.getElementById("licenseBody"), state.licenses, "免許・資格");
+  renderFixedTable(document.getElementById("licenseBody"), state.licenses, "免許・資格", bindLicenseTable);
   const addBtn = document.getElementById("addLicenseRowBtn");
   updateAddButtonState(addBtn, state.licenses.length, LICENSE_ROWS_MAX, "");
 }

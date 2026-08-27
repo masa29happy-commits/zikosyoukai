@@ -237,6 +237,88 @@ function bindJobActions() {
     renderJobForms();
     renderPreview();
   });
+  document.getElementById("syncFromRirekishoBtn").addEventListener("click", syncJobsFromRirekisho);
+}
+
+// ---------- Pull company/period from the rirekisho's work history ----------
+// Extracts {company, start, end, current} from rirekisho work-history rows,
+// handling both shapes rirekisho.js's own row consolidation produces: a
+// single row already merged ("〇〇 入社（同年7月 ... 退職）" / "〇〇 入社
+// （2023年4月 ... 退職）") and two separate rows (a join-only row
+// immediately followed by its matching leave row for the same company). A
+// join row with no matching leave anywhere is treated as their current job.
+function extractJobsFromRirekisho(workHistoryRows) {
+  const JOIN_RE = /(入社|入職)/;
+  const LEAVE_RE = /(退社|退職)/;
+  const toMonthValue = (year, month) => (year && month) ? `${year}-${String(month).padStart(2, "0")}` : "";
+  const rows = Array.isArray(workHistoryRows) ? workHistoryRows : [];
+  const jobs = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const joinMatch = row.text && row.text.match(JOIN_RE);
+    if (!joinMatch) continue;
+
+    const company = row.text.slice(0, joinMatch.index).trim();
+    if (!company) continue;
+    const start = toMonthValue(row.year, row.month);
+
+    if (LEAVE_RE.test(row.text)) {
+      // Already consolidated into one row — pull the end date out of the
+      // "（同年7月...）" / "（2023年4月...）" parenthetical.
+      const consolidated = row.text.match(/[（(](?:同年|(\d{4})年)\s*(\d{1,2})\s*月/);
+      if (consolidated) {
+        jobs.push({ company, start, end: toMonthValue(consolidated[1] || row.year, consolidated[2]), current: false });
+      }
+      // Couldn't parse the end date out of it — skip rather than guess wrong.
+      continue;
+    }
+
+    const next = rows[i + 1];
+    if (next && next.text && LEAVE_RE.test(next.text) && !JOIN_RE.test(next.text) && next.text.startsWith(company)) {
+      jobs.push({ company, start, end: toMonthValue(next.year, next.month), current: false });
+      i++; // this leave row is consumed as part of the pair, don't re-scan it
+    } else {
+      jobs.push({ company, start, end: "", current: true });
+    }
+  }
+  return jobs;
+}
+
+function syncJobsFromRirekisho() {
+  const rirekishoState = Storage.load(RIREKISHO_PREFIX + CANDIDATE_ID);
+  if (!rirekishoState || !Array.isArray(rirekishoState.workHistory) || rirekishoState.workHistory.length === 0) {
+    alert("履歴書の職歴データが見つかりませんでした。先に履歴書側で職歴を入力してください。");
+    return;
+  }
+  const extracted = extractJobsFromRirekisho(rirekishoState.workHistory);
+  if (extracted.length === 0) {
+    alert("履歴書の職歴から会社名を読み取れませんでした。表記が独特な場合、手動で入力してください。");
+    return;
+  }
+
+  const existingCompanies = new Set(state.jobs.map(j => (j.company || "").trim()).filter(Boolean));
+  let addedCount = 0;
+  extracted.forEach(({ company, start, end, current }) => {
+    if (existingCompanies.has(company)) return; // already registered — never overwrite existing entries
+    existingCompanies.add(company);
+    const job = emptyJob();
+    job.company = company;
+    job.start = start;
+    job.end = end;
+    job.current = current;
+    const blankFirstJob = state.jobs.length === 1 && !state.jobs[0].company && !state.jobs[0].start && !state.jobs[0].end;
+    if (blankFirstJob) state.jobs[0] = job;
+    else state.jobs.push(job);
+    addedCount++;
+  });
+
+  persistDebounced();
+  renderJobForms();
+  renderPreview();
+  alert(addedCount > 0
+    ? `履歴書から${addedCount}件の会社を取り込みました。業務内容などは別途入力してください。`
+    : "履歴書の職歴はすべて、すでに登録されている会社と同じでした。");
 }
 
 // ---------- Preview (paginated into A4 pages, same approach as rirekisho) ----------
