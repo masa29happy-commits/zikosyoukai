@@ -191,6 +191,20 @@ async function initCandidatesPage() {
   bindLoginGateOnce();
   document.getElementById("candidateSearchInput").addEventListener("input", applyNameFilter);
   document.getElementById("addCandidateBtn").addEventListener("click", () => {
+    const name = (prompt("求職者の氏名を入力してください(すでに登録済みでないか確認します)") || "").trim();
+    if (name) {
+      const normalized = normalizeForSearch(name);
+      const match = allCandidates.find(c => normalizeForSearch(c.name) === normalized);
+      if (match) {
+        const openExisting = confirm(
+          `「${match.name}」さんは既に登録されています。既存のデータを開きますか?\n(キャンセルすると、別人として新規作成します)`
+        );
+        if (openExisting) {
+          location.href = candidateUrl("rirekisho.html", match.id);
+          return;
+        }
+      }
+    }
     const id = generateCandidateId();
     location.href = candidateUrl("rirekisho.html", id);
   });
