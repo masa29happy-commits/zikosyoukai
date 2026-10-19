@@ -46,6 +46,11 @@
     <input type="text" id="candidateSearchInput" placeholder="例: 山田 太郎">
   </div>
 
+  <div style="margin-bottom:16px;">
+    <button type="button" class="btn btn-small" id="toggleHiddenBtn">非表示にした候補者を見る</button>
+    <div id="hiddenList" style="display:none;margin-top:10px;max-width:420px;"></div>
+  </div>
+
   <div id="emptyState" class="notice-box" style="display:none;">
     まだ求職者が登録されていません。「+ 新しい求職者を追加」から始めてください。
   </div>
@@ -54,8 +59,8 @@
     <thead>
       <tr>
         <th>氏名</th>
-        <th id="assignedToHeader" style="display:none;">担当</th>
         <th id="agencyHeader" style="display:none;">会社</th>
+        <th id="assignedToHeader" style="display:none;">担当</th>
         <th>更新日時</th>
         <th></th>
       </tr>

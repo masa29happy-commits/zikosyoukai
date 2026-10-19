@@ -55,14 +55,100 @@ function normalizeForSearch(s) {
   return (s || "").replace(/\s+/g, "").toLowerCase();
 }
 
-let allCandidates = [];
-let isHostView = false; // host or agency-host: both see a 担当 column
-let isTrueHostView = false; // host only: also sees which 会社 each row belongs to
+// "削除" never touches the shared sheet — it only ever affects this one
+// browser's own view. For a candidate with a local copy it also clears
+// that copy; for a shared-spreadsheet-only entry there's nothing local to
+// clear, so this list is what makes 削除 still remove the row from THIS
+// browser's list either way, instead of silently doing nothing.
+const HIDDEN_CANDIDATES_KEY = "hidden_candidates_v1";
+
+// Hiding is a deliberate action, so it stays hidden indefinitely — the only
+// way back is the "元に戻す" button (see renderHiddenList/unhideCandidateLocally).
+function getHiddenCandidateIds() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(HIDDEN_CANDIDATES_KEY) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function hideCandidateLocally(id) {
+  const ids = getHiddenCandidateIds();
+  if (!ids.includes(id)) {
+    ids.push(id);
+    localStorage.setItem(HIDDEN_CANDIDATES_KEY, JSON.stringify(ids));
+  }
+}
+
+function unhideCandidateLocally(id) {
+  const ids = getHiddenCandidateIds().filter(x => x !== id);
+  localStorage.setItem(HIDDEN_CANDIDATES_KEY, JSON.stringify(ids));
+}
+
+// Shows whichever of the hidden ids are still in allCandidates (always the
+// full, unfiltered set) with a button to unhide each one.
+function renderHiddenList() {
+  const hiddenIds = getHiddenCandidateIds();
+  const toggleBtn = document.getElementById("toggleHiddenBtn");
+  toggleBtn.textContent = hiddenIds.length
+    ? `非表示にした候補者を見る (${hiddenIds.length}件)`
+    : "非表示にした候補者を見る";
+
+  const hiddenList = document.getElementById("hiddenList");
+  if (hiddenList.style.display === "none") return;
+
+  hiddenList.innerHTML = "";
+  if (hiddenIds.length === 0) {
+    const empty = document.createElement("p");
+    empty.style.cssText = "font-size:13px;color:#888;margin:0;";
+    empty.textContent = "非表示にした候補者はいません。";
+    hiddenList.appendChild(empty);
+    return;
+  }
+
+  const byId = new Map(allCandidates.map(c => [c.id, c]));
+  hiddenIds.forEach(id => {
+    const c = byId.get(id);
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--color-border);";
+
+    const label = document.createElement("span");
+    label.textContent = c ? (c.name || "(名前未入力)") : "(詳細不明)";
+    row.appendChild(label);
+
+    const restoreBtn = document.createElement("button");
+    restoreBtn.type = "button";
+    restoreBtn.className = "btn btn-small";
+    restoreBtn.textContent = "元に戻す";
+    restoreBtn.addEventListener("click", () => {
+      unhideCandidateLocally(id);
+      applyNameFilter();
+    });
+    row.appendChild(restoreBtn);
+
+    hiddenList.appendChild(row);
+  });
+}
+
+function bindHiddenToggleOnce() {
+  document.getElementById("toggleHiddenBtn").addEventListener("click", () => {
+    const hiddenList = document.getElementById("hiddenList");
+    hiddenList.style.display = hiddenList.style.display === "none" ? "block" : "none";
+    renderHiddenList();
+  });
+}
+
+let allCandidates = []; // the full set — kept unfiltered so the hidden-candidates list can still look up names
+let isHostView = false; // host or agency-host: both see 会社 and 担当 columns
 
 function applyNameFilter() {
+  const hiddenIds = getHiddenCandidateIds();
+  const visible = allCandidates.filter(c => !hiddenIds.includes(c.id));
   const q = normalizeForSearch(document.getElementById("candidateSearchInput").value);
-  const filtered = q ? allCandidates.filter(c => normalizeForSearch(c.name).includes(q)) : allCandidates;
-  renderCandidatesList(filtered, q && allCandidates.length > 0);
+  const filtered = q ? visible.filter(c => normalizeForSearch(c.name).includes(q)) : visible;
+  renderCandidatesList(filtered, q && visible.length > 0);
+  renderHiddenList();
 }
 
 function renderCandidatesList(candidates, isFilteredEmpty) {
@@ -81,7 +167,7 @@ function renderCandidatesList(candidates, isFilteredEmpty) {
   table.style.display = "table";
   emptyState.style.display = "none";
   document.getElementById("assignedToHeader").style.display = isHostView ? "" : "none";
-  document.getElementById("agencyHeader").style.display = isTrueHostView ? "" : "none";
+  document.getElementById("agencyHeader").style.display = isHostView ? "" : "none";
 
   body.innerHTML = "";
   candidates.forEach(c => {
@@ -90,28 +176,18 @@ function renderCandidatesList(candidates, isFilteredEmpty) {
     const nameTd = document.createElement("td");
     nameTd.textContent = c.name || "(名前未入力)";
     if (!c.name) nameTd.className = "empty-hint";
-    if (c.remoteOnly) {
-      const badge = document.createElement("span");
-      badge.className = "remote-badge";
-      badge.textContent = "共有";
-      badge.title = "このブラウザではなく、共有スプレッドシート側にあるデータです";
-      nameTd.appendChild(document.createTextNode(" "));
-      nameTd.appendChild(badge);
-    }
     tr.appendChild(nameTd);
 
     if (isHostView) {
-      const assignedTd = document.createElement("td");
-      assignedTd.textContent = c.assignedTo || "(未設定)";
-      if (!c.assignedTo) assignedTd.className = "empty-hint";
-      tr.appendChild(assignedTd);
-    }
-
-    if (isTrueHostView) {
       const agencyTd = document.createElement("td");
       agencyTd.textContent = c.agency || "(未設定)";
       if (!c.agency) agencyTd.className = "empty-hint";
       tr.appendChild(agencyTd);
+
+      const assignedTd = document.createElement("td");
+      assignedTd.textContent = c.assignedTo || "(未設定)";
+      if (!c.assignedTo) assignedTd.className = "empty-hint";
+      tr.appendChild(assignedTd);
     }
 
     const updatedTd = document.createElement("td");
@@ -134,22 +210,22 @@ function renderCandidatesList(candidates, isFilteredEmpty) {
     actionsTd.appendChild(rirekishoLink);
     actionsTd.appendChild(shokumuLink);
 
-    // A remote-only row has nothing in this browser's localStorage yet, so
-    // there's nothing here for "削除" to actually remove — hide it rather
-    // than show a button that looks like it deletes data but doesn't.
-    if (!c.remoteOnly) {
-      const deleteBtn = document.createElement("button");
-      deleteBtn.type = "button";
-      deleteBtn.className = "btn btn-small btn-danger";
-      deleteBtn.textContent = "削除";
-      deleteBtn.addEventListener("click", () => {
-        const label = c.name || "(名前未入力)";
-        if (!confirm(`「${label}」さんの履歴書・職務経歴書データを削除します。よろしいですか?`)) return;
-        deleteCandidateData(c.id);
-        refreshCandidatesList();
-      });
-      actionsTd.appendChild(deleteBtn);
-    }
+    // Always shown and always works the same way, whether or not this
+    // candidate happens to have a local copy in this browser: it clears any
+    // local copy AND hides the row from this browser's list going forward.
+    // Never touches the shared spreadsheet.
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "btn btn-small btn-danger";
+    deleteBtn.textContent = "削除";
+    deleteBtn.addEventListener("click", () => {
+      const label = c.name || "(名前未入力)";
+      if (!confirm(`「${label}」さんをこの一覧から削除します(共有スプレッドシート側のデータは残ります)。よろしいですか?`)) return;
+      deleteCandidateData(c.id);
+      hideCandidateLocally(c.id);
+      refreshCandidatesList();
+    });
+    actionsTd.appendChild(deleteBtn);
 
     tr.appendChild(updatedTd);
     tr.appendChild(actionsTd);
@@ -181,7 +257,6 @@ function showMain(auth) {
   document.getElementById("candidatesMain").style.display = "block";
   document.getElementById("loggedInAs").textContent = auth ? `ログイン中: ${auth.name}` : "";
   isHostView = !!(auth && (auth.role === "host" || auth.role === "agency-host"));
-  isTrueHostView = !!(auth && auth.role === "host");
   refreshCandidatesList();
 }
 
@@ -216,22 +291,9 @@ function bindLoginGateOnce() {
 async function initCandidatesPage() {
   migrateLegacyData();
   bindLoginGateOnce();
+  bindHiddenToggleOnce();
   document.getElementById("candidateSearchInput").addEventListener("input", applyNameFilter);
   document.getElementById("addCandidateBtn").addEventListener("click", () => {
-    const name = (prompt("求職者の氏名を入力してください(すでに登録済みでないか確認します)") || "").trim();
-    if (name) {
-      const normalized = normalizeForSearch(name);
-      const match = allCandidates.find(c => normalizeForSearch(c.name) === normalized);
-      if (match) {
-        const openExisting = confirm(
-          `「${match.name}」さんは既に登録されています。既存のデータを開きますか?\n(キャンセルすると、別人として新規作成します)`
-        );
-        if (openExisting) {
-          location.href = candidateUrl("rirekisho.html", match.id);
-          return;
-        }
-      }
-    }
     const id = generateCandidateId();
     location.href = candidateUrl("rirekisho.html", id);
   });
