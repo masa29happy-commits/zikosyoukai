@@ -151,6 +151,7 @@ function applyNameFilter() {
     normalizeForSearch(c.agency).includes(q) ||
     normalizeForSearch(c.assignedTo).includes(q)
   ) : visible;
+  document.getElementById("candidateSearchLabel").textContent = isHostView ? "氏名・会社・担当で検索" : "氏名で検索";
   renderCandidatesList(filtered, q && visible.length > 0);
   renderHiddenList();
 }
