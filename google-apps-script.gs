@@ -102,7 +102,7 @@ function doGet(e) {
       assignedTo: values[i][11] || ""
     });
   }
-  return jsonResponse(list);
+  return jsonResponse({ role: auth.role, list: list });
 }
 
 // Saving never requires login (see access model note above). If a logged-in

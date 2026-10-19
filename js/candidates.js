@@ -32,13 +32,19 @@ async function loadAllCandidates(auth) {
   const localById = new Map(listCandidates().map(c => [c.id, c]));
   return result.list
     .filter(r => r.candidateId)
-    .map(r => localById.get(r.candidateId) || {
-      id: r.candidateId,
-      name: r.fullName || "",
-      updatedAt: r.updatedAt || null,
-      hasRirekisho: !!r.hasRirekisho,
-      hasShokumu: !!r.hasShokumu,
-      remoteOnly: true
+    .map(r => {
+      const local = localById.get(r.candidateId);
+      return local
+        ? { ...local, assignedTo: r.assignedTo || "" }
+        : {
+          id: r.candidateId,
+          name: r.fullName || "",
+          updatedAt: r.updatedAt || null,
+          hasRirekisho: !!r.hasRirekisho,
+          hasShokumu: !!r.hasShokumu,
+          assignedTo: r.assignedTo || "",
+          remoteOnly: true
+        };
     })
     .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
 }
@@ -49,6 +55,7 @@ function normalizeForSearch(s) {
 }
 
 let allCandidates = [];
+let isHostView = false;
 
 function applyNameFilter() {
   const q = normalizeForSearch(document.getElementById("candidateSearchInput").value);
@@ -71,6 +78,7 @@ function renderCandidatesList(candidates, isFilteredEmpty) {
   }
   table.style.display = "table";
   emptyState.style.display = "none";
+  document.getElementById("assignedToHeader").style.display = isHostView ? "" : "none";
 
   body.innerHTML = "";
   candidates.forEach(c => {
@@ -86,6 +94,14 @@ function renderCandidatesList(candidates, isFilteredEmpty) {
       badge.title = "このブラウザではなく、共有スプレッドシート側にあるデータです";
       nameTd.appendChild(document.createTextNode(" "));
       nameTd.appendChild(badge);
+    }
+    tr.appendChild(nameTd);
+
+    if (isHostView) {
+      const assignedTd = document.createElement("td");
+      assignedTd.textContent = c.assignedTo || "(未設定)";
+      if (!c.assignedTo) assignedTd.className = "empty-hint";
+      tr.appendChild(assignedTd);
     }
 
     const updatedTd = document.createElement("td");
@@ -125,7 +141,6 @@ function renderCandidatesList(candidates, isFilteredEmpty) {
       actionsTd.appendChild(deleteBtn);
     }
 
-    tr.appendChild(nameTd);
     tr.appendChild(updatedTd);
     tr.appendChild(actionsTd);
     body.appendChild(tr);
@@ -155,6 +170,7 @@ function showMain(auth) {
   document.getElementById("loginGate").style.display = "none";
   document.getElementById("candidatesMain").style.display = "block";
   document.getElementById("loggedInAs").textContent = auth ? `ログイン中: ${auth.name}` : "";
+  isHostView = !!(auth && auth.role === "host");
   refreshCandidatesList();
 }
 
@@ -171,8 +187,8 @@ async function attemptLogin() {
     showLoginGate("ログインできませんでした。スタッフ名・パスワードを確認してください。");
     return;
   }
-  setStaffAuth(name, password);
-  showMain({ name, password });
+  setStaffAuth(name, password, result.role);
+  showMain({ name, password, role: result.role });
 }
 
 function bindLoginGateOnce() {
@@ -227,7 +243,8 @@ async function initCandidatesPage() {
     showLoginGate("ログインの有効期限が切れました。もう一度ログインしてください。");
     return;
   }
-  showMain(auth);
+  setStaffAuth(auth.name, auth.password, result.role);
+  showMain({ ...auth, role: result.role });
 }
 
 initCandidatesPage();

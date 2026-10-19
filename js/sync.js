@@ -23,8 +23,8 @@ function getStaffAuth() {
   }
 }
 
-function setStaffAuth(name, password) {
-  localStorage.setItem(STAFF_AUTH_KEY, JSON.stringify({ name, password }));
+function setStaffAuth(name, password, role) {
+  localStorage.setItem(STAFF_AUTH_KEY, JSON.stringify({ name, password, role }));
 }
 
 function clearStaffAuth() {
@@ -101,14 +101,18 @@ async function fetchFromSheet(candidateId, type) {
 // the admin list view in candidates.html. Returns {ok:false} if not logged
 // in or the login is invalid, {ok:true, list:[...]} otherwise.
 async function fetchCandidateListFromSheet(name, password) {
-  if (!SYNC_CONFIG.webAppUrl) return { ok: true, list: [] };
+  if (!SYNC_CONFIG.webAppUrl) return { ok: true, list: [], role: "host" };
   try {
     const url = `${SYNC_CONFIG.webAppUrl}?staffName=${encodeURIComponent(name)}&staffPassword=${encodeURIComponent(password)}`;
     const res = await fetch(url);
     if (!res.ok) return { ok: false };
     const json = await res.json();
-    if (!Array.isArray(json)) return { ok: false };
-    return { ok: true, list: json };
+    // Accepts both the old shape (a bare array) and the new one
+    // ({role, list}), so this still works whichever version of
+    // google-apps-script.gs happens to be deployed at the time.
+    if (Array.isArray(json)) return { ok: true, list: json, role: undefined };
+    if (!json || !Array.isArray(json.list)) return { ok: false };
+    return { ok: true, list: json.list, role: json.role || "staff" };
   } catch (e) {
     return { ok: false };
   }
