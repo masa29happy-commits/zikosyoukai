@@ -12,16 +12,24 @@
 //    SITE_BASE_URL below (no trailing slash) so the "リンク" column can link
 //    straight to each candidate's page on the site.
 // 8. Add a second sheet tab named exactly "スタッフ" with these headers in
-//    row 1: スタッフ名 | パスワード | 権限
+//    row 1: スタッフ名 | パスワード | 権限 | 会社
 //    Add one row per staff/agency login you want to hand out. 権限 should be
-//    either "host" (sees everyone) or "staff" (sees only their own 担当).
+//    one of:
+//      - "host"        HYUGA本体。全社・全員を閲覧/編集できる。
+//      - "agency-host" 代理店側のホスト。会社列が自分と同じ求職者だけを
+//                      担当に関係なく全員閲覧/編集できる。
+//      - "staff"       担当になっている自分の求職者だけを閲覧/編集できる。
+//    会社 は agency-host・staff の行にその人の所属会社名を入れる(hostは
+//    全社見えるので空でもよい)。
 //    You decide the passwords yourself and hand them out — there's no
 //    self-signup.
-// 9. In the main data sheet, add a "担当" header in the column right after
-//    "リンク" (column L) if it isn't there already. New candidates a staff
-//    member creates get auto-assigned to that staff member; ones a
-//    job-seeker creates directly (no login) start unassigned — assign them
-//    by typing a name into that column yourself.
+// 9. In the main data sheet, add "担当" and "会社" headers in the columns
+//    right after "リンク" (columns L, M) if they aren't there already. New
+//    candidates a logged-in staff member creates get auto-assigned to that
+//    staff member as 担当 (host/agency-hostは担当には入らない); the 会社
+//    column auto-fills from whoever is logged in when the candidate is
+//    created (host/agency-host/staff問わず)。ログインなしで求職者本人が
+//    直接作った場合はどちらも空のまま — 後で手入力して割り当てる。
 //
 // Every save on the site (rirekisho or shokumu) sends one row's worth of
 // data here; this upserts by candidateId so re-saving updates the same row
@@ -33,15 +41,18 @@
 // in their own resume for the first time has no staff account, and that must
 // keep working. Only *reading the list* and *reading one candidate's data
 // back* (used when a browser has no local copy yet, e.g. staff opening
-// someone else's link) require a valid staff login, and are filtered to that
-// staff's own 担当 unless they're "host".
+// someone else's link) require a valid staff login, and are filtered to:
+//   host        -> everyone
+//   agency-host -> rows whose 会社 matches their own 会社, regardless of 担当
+//   staff       -> only rows whose 担当 is their own name
 
 const SITE_BASE_URL = "https://masa29happy-commits.github.io/zikosyoukai";
 
-const HEADERS = ["更新日時", "CandidateId", "氏名", "ふりがな", "生年月日", "電話", "Email", "現住所", "履歴書JSON", "職務経歴書JSON", "リンク", "担当"];
+const HEADERS = ["更新日時", "CandidateId", "氏名", "ふりがな", "生年月日", "電話", "Email", "現住所", "履歴書JSON", "職務経歴書JSON", "リンク", "担当", "会社"];
 
-// Returns {name, role} if staffName/staffPassword match a row in the "スタッフ"
-// tab, otherwise null. role is whatever's in the 権限 column ("host" or "staff").
+// Returns {name, role, agency} if staffName/staffPassword match a row in the
+// "スタッフ" tab, otherwise null. role/agency are whatever's in the 権限/会社
+// columns (role defaults to "staff" if blank).
 function authenticateStaff(name, password) {
   if (!name || !password) return null;
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("スタッフ");
@@ -49,10 +60,22 @@ function authenticateStaff(name, password) {
   const values = sheet.getDataRange().getValues();
   for (let i = 1; i < values.length; i++) {
     if (String(values[i][0]) === name && String(values[i][1]) === password) {
-      return { name: String(values[i][0]), role: String(values[i][2] || "staff") };
+      return {
+        name: String(values[i][0]),
+        role: String(values[i][2] || "staff"),
+        agency: String(values[i][3] || "")
+      };
     }
   }
   return null;
+}
+
+// True if `auth` may see/touch a row with this 担当/会社 (host sees
+// everything; agency-host is scoped to its own 会社; staff to its own 担当).
+function canAccessRow(auth, assignedTo, agency) {
+  if (auth.role === "host") return true;
+  if (auth.role === "agency-host") return !!agency && agency === auth.agency;
+  return !!assignedTo && assignedTo === auth.name;
 }
 
 function jsonResponse(obj) {
@@ -76,13 +99,15 @@ function doGet(e) {
     for (let i = 1; i < values.length; i++) {
       if (String(values[i][1]) === candidateId) {
         const assignedTo = values[i][11];
-        if (auth.role !== "host" && assignedTo !== auth.name) return jsonResponse({ error: "forbidden" });
+        const agency = values[i][12] || "";
+        if (!canAccessRow(auth, assignedTo, agency)) return jsonResponse({ error: "forbidden" });
         const rirekishoJson = values[i][8];
         const shokumuJson = values[i][9];
         return jsonResponse({
           candidateId: candidateId,
           fullName: values[i][2],
           assignedTo: assignedTo || "",
+          agency: agency,
           rirekisho: rirekishoJson ? JSON.parse(rirekishoJson) : null,
           shokumu: shokumuJson ? JSON.parse(shokumuJson) : null
         });
@@ -93,14 +118,17 @@ function doGet(e) {
 
   const list = [];
   for (let i = 1; i < values.length; i++) {
-    if (auth.role !== "host" && values[i][11] !== auth.name) continue;
+    const assignedTo = values[i][11];
+    const agency = values[i][12] || "";
+    if (!canAccessRow(auth, assignedTo, agency)) continue;
     list.push({
       candidateId: values[i][1],
       fullName: values[i][2],
       updatedAt: values[i][0],
       hasRirekisho: !!values[i][8],
       hasShokumu: !!values[i][9],
-      assignedTo: values[i][11] || ""
+      assignedTo: assignedTo || "",
+      agency: agency
     });
   }
   return jsonResponse({ role: auth.role, list: list });
@@ -129,15 +157,23 @@ function doPost(e) {
       if (String(values[i][1]) === candidateId) { rowIndex = i + 1; break; }
     }
 
-    // A logged-in staff member may only touch their own candidates (host can
-    // touch any). A request with no credentials at all (a job-seeker saving
-    // their own resume) is always allowed — see access model note above.
+    // A logged-in staff member may only touch their own candidates; a
+    // logged-in agency-host may only touch its own 会社's candidates (an
+    // unassigned/no-agency row is always writable by anyone, so it can be
+    // claimed). host can touch any. A request with no credentials at all
+    // (a job-seeker saving their own resume) is always allowed — see
+    // access model note above.
     if (rowIndex > 0 && auth && auth.role !== "host") {
       const assignedTo = values[rowIndex - 1][11];
-      if (assignedTo && assignedTo !== auth.name) return jsonResponse({ ok: false, error: "forbidden" });
+      const agency = values[rowIndex - 1][12] || "";
+      if (auth.role === "agency-host") {
+        if (agency && agency !== auth.agency) return jsonResponse({ ok: false, error: "forbidden" });
+      } else if (assignedTo && assignedTo !== auth.name) {
+        return jsonResponse({ ok: false, error: "forbidden" });
+      }
     }
 
-    const row = rowIndex > 0 ? values[rowIndex - 1] : ["", candidateId, "", "", "", "", "", "", "", "", "", ""];
+    const row = rowIndex > 0 ? values[rowIndex - 1] : ["", candidateId, "", "", "", "", "", "", "", "", "", "", ""];
 
     row[0] = new Date();
     if (type === "rirekisho") {
@@ -156,8 +192,14 @@ function doPost(e) {
       const url = SITE_BASE_URL + "/rirekisho.html?candidate=" + encodeURIComponent(candidateId);
       row[10] = '=HYPERLINK("' + url + '","開く")';
     }
-    if (rowIndex < 0 && auth && auth.role !== "host") {
-      row[11] = auth.name;
+    if (rowIndex < 0 && auth) {
+      // Only an individual staff member becomes 担当 — host/agency-host are
+      // overseers, not case workers, so they stay unassigned like today.
+      if (auth.role === "staff") row[11] = auth.name;
+      // Whoever is logged in when a candidate is first created tags it with
+      // their own 会社 (host/agency-host/staff alike), the same way 担当
+      // gets auto-filled for staff above.
+      if (auth.agency) row[12] = auth.agency;
     }
 
     if (rowIndex > 0) {

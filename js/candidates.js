@@ -35,7 +35,7 @@ async function loadAllCandidates(auth) {
     .map(r => {
       const local = localById.get(r.candidateId);
       return local
-        ? { ...local, assignedTo: r.assignedTo || "" }
+        ? { ...local, assignedTo: r.assignedTo || "", agency: r.agency || "" }
         : {
           id: r.candidateId,
           name: r.fullName || "",
@@ -43,6 +43,7 @@ async function loadAllCandidates(auth) {
           hasRirekisho: !!r.hasRirekisho,
           hasShokumu: !!r.hasShokumu,
           assignedTo: r.assignedTo || "",
+          agency: r.agency || "",
           remoteOnly: true
         };
     })
@@ -55,7 +56,8 @@ function normalizeForSearch(s) {
 }
 
 let allCandidates = [];
-let isHostView = false;
+let isHostView = false; // host or agency-host: both see a 担当 column
+let isTrueHostView = false; // host only: also sees which 会社 each row belongs to
 
 function applyNameFilter() {
   const q = normalizeForSearch(document.getElementById("candidateSearchInput").value);
@@ -79,6 +81,7 @@ function renderCandidatesList(candidates, isFilteredEmpty) {
   table.style.display = "table";
   emptyState.style.display = "none";
   document.getElementById("assignedToHeader").style.display = isHostView ? "" : "none";
+  document.getElementById("agencyHeader").style.display = isTrueHostView ? "" : "none";
 
   body.innerHTML = "";
   candidates.forEach(c => {
@@ -102,6 +105,13 @@ function renderCandidatesList(candidates, isFilteredEmpty) {
       assignedTd.textContent = c.assignedTo || "(未設定)";
       if (!c.assignedTo) assignedTd.className = "empty-hint";
       tr.appendChild(assignedTd);
+    }
+
+    if (isTrueHostView) {
+      const agencyTd = document.createElement("td");
+      agencyTd.textContent = c.agency || "(未設定)";
+      if (!c.agency) agencyTd.className = "empty-hint";
+      tr.appendChild(agencyTd);
     }
 
     const updatedTd = document.createElement("td");
@@ -170,7 +180,8 @@ function showMain(auth) {
   document.getElementById("loginGate").style.display = "none";
   document.getElementById("candidatesMain").style.display = "block";
   document.getElementById("loggedInAs").textContent = auth ? `ログイン中: ${auth.name}` : "";
-  isHostView = !!(auth && auth.role === "host");
+  isHostView = !!(auth && (auth.role === "host" || auth.role === "agency-host"));
+  isTrueHostView = !!(auth && auth.role === "host");
   refreshCandidatesList();
 }
 
