@@ -203,7 +203,7 @@ function bindPhotoOnce() {
       input.value = "";
       return;
     }
-    state.photoDataUrl = await fileToDataUrl(file);
+    state.photoDataUrl = await resizeImageToDataUrl(file);
     renderPhotoBox();
     persistDebounced();
     renderPreview();

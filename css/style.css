@@ -587,7 +587,7 @@ table.history-table tr, table.license-table tr {
   flex: 1 1 auto;
   min-height: 25mm;
   white-space: pre-wrap;
-  font-size: 12px;
+  font-size: 14px;
   padding: 4px 6px;
   overflow: hidden;
 }

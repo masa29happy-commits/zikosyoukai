@@ -57,10 +57,38 @@ function nl2br(str) {
   return escapeHtml(str).replaceAll("\n", "<br>");
 }
 
-function fileToDataUrl(file) {
+// Resizes/recompresses an uploaded photo before it ever reaches state — an
+// unmodified phone photo (even a few MB) becomes a base64 string far past
+// Google Sheets' 50,000-characters-per-cell limit, which silently fails the
+// whole row's sync (the fetch uses mode:"no-cors", so the error never
+// surfaces), and can also blow past localStorage's shared per-origin quota
+// across all candidates saved in the same browser. Capping the longest side
+// at maxDim and re-encoding as JPEG keeps a real headshot to a few tens of KB.
+function resizeImageToDataUrl(file, maxDim = 480, quality = 0.85) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round(height * (maxDim / width));
+            width = maxDim;
+          } else {
+            width = Math.round(width * (maxDim / height));
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
