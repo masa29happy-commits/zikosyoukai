@@ -146,7 +146,11 @@ function applyNameFilter() {
   const hiddenIds = getHiddenCandidateIds();
   const visible = allCandidates.filter(c => !hiddenIds.includes(c.id));
   const q = normalizeForSearch(document.getElementById("candidateSearchInput").value);
-  const filtered = q ? visible.filter(c => normalizeForSearch(c.name).includes(q)) : visible;
+  const filtered = q ? visible.filter(c =>
+    normalizeForSearch(c.name).includes(q) ||
+    normalizeForSearch(c.agency).includes(q) ||
+    normalizeForSearch(c.assignedTo).includes(q)
+  ) : visible;
   renderCandidatesList(filtered, q && visible.length > 0);
   renderHiddenList();
 }
