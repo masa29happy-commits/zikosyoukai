@@ -535,21 +535,25 @@ async function initPage() {
   // someone else's link) — try pulling their last-synced data from the shared
   // sheet before rendering, so the same edit form works for admin and
   // candidate alike instead of needing a separate read-only view.
+  let autoPersist = true;
   if (!Storage.load(STORAGE_KEY)) {
     const remote = await fetchFromSheet(CANDIDATE_ID, "shokumu");
     if (remote) {
-      state = { ...structuredClone(defaultState), ...remote };
+      state = { ...structuredClone(defaultState), ...remote.data };
       if (!Array.isArray(state.skills) || state.skills.length === 0) state.skills = [emptySkill()];
       if (!Array.isArray(state.jobs) || state.jobs.length === 0) state.jobs = [emptyJob()];
       state.jobs.forEach(job => {
         if (!Array.isArray(job.roles) || job.roles.length === 0) job.roles = [emptyRole()];
       });
+      // Just viewing someone else's candidate shouldn't silently leave a
+      // permanent local copy behind in this browser.
+      autoPersist = shouldAutoPersistRemote(remote.assignedTo);
     }
   }
 
   refreshForm();
   // Ensure this candidate shows up in the list immediately, even before any edits.
-  if (!Storage.load(STORAGE_KEY)) persist();
+  if (autoPersist && !Storage.load(STORAGE_KEY)) persist();
 
   // Keep the tab-switch links pointed at the same candidate.
   document.getElementById("navRirekisho").href = candidateUrl("rirekisho.html", CANDIDATE_ID);

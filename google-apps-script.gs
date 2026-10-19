@@ -82,6 +82,7 @@ function doGet(e) {
         return jsonResponse({
           candidateId: candidateId,
           fullName: values[i][2],
+          assignedTo: assignedTo || "",
           rirekisho: rirekishoJson ? JSON.parse(rirekishoJson) : null,
           shokumu: shokumuJson ? JSON.parse(shokumuJson) : null
         });

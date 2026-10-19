@@ -79,6 +79,10 @@ function syncToSheet(key, data) {
 // (e.g. a job-seeker's own first visit, before they've saved anything) this
 // just returns null, same as "not found" — callers already fall back to a
 // blank form in that case, so nothing breaks for job-seekers.
+// Returns {data, assignedTo} — assignedTo is undefined when talking to an
+// older, not-yet-redeployed google-apps-script.gs that doesn't send it, so
+// callers can't tell who owns the record and should fall back to the old
+// always-persist-locally behavior.
 async function fetchFromSheet(candidateId, type) {
   if (!SYNC_CONFIG.webAppUrl) return null;
   const auth = getStaffAuth();
@@ -90,7 +94,8 @@ async function fetchFromSheet(candidateId, type) {
     if (!res.ok) return null;
     const json = await res.json();
     if (!json || json.error) return null;
-    return json[type] || null;
+    if (!json[type]) return null;
+    return { data: json[type], assignedTo: json.assignedTo };
   } catch (e) {
     return null;
   }
