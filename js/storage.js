@@ -22,19 +22,6 @@ const Storage = {
   }
 };
 
-// Decides whether opening someone else's candidate link should silently
-// create a local copy in THIS browser. Merely viewing a record you don't
-// own would otherwise leave a stale permanent cache behind (e.g. host
-// checking in on a staff member's candidate) — only auto-persist when the
-// viewer is the one actually assigned to this candidate, the candidate is
-// still unassigned (anyone may claim it), or we can't tell because the
-// deployed Apps Script hasn't been updated to send `assignedTo` yet.
-function shouldAutoPersistRemote(assignedTo) {
-  if (assignedTo === undefined || !assignedTo) return true;
-  const auth = typeof getStaffAuth === "function" ? getStaffAuth() : null;
-  return !!(auth && auth.name === assignedTo);
-}
-
 function debounce(fn, wait) {
   let t;
   return (...args) => {

@@ -534,8 +534,10 @@ async function initPage() {
   // This browser has never seen this candidate locally (e.g. an admin opening
   // someone else's link) — try pulling their last-synced data from the shared
   // sheet before rendering, so the same edit form works for admin and
-  // candidate alike instead of needing a separate read-only view.
-  let autoPersist = true;
+  // candidate alike instead of needing a separate read-only view. Just
+  // viewing never saves anything (here or to the shared sheet) — only an
+  // actual edit (persistDebounced, below) does, so opening a page never
+  // bumps 更新日時 or reorders the candidates list by itself.
   if (!Storage.load(STORAGE_KEY)) {
     const remote = await fetchFromSheet(CANDIDATE_ID, "shokumu");
     if (remote) {
@@ -545,25 +547,25 @@ async function initPage() {
       state.jobs.forEach(job => {
         if (!Array.isArray(job.roles) || job.roles.length === 0) job.roles = [emptyRole()];
       });
-      // Just viewing someone else's candidate shouldn't silently leave a
-      // permanent local copy behind in this browser.
-      autoPersist = shouldAutoPersistRemote(remote.assignedTo);
     }
   }
 
   // The name is the one field worth carrying over automatically (unlike job
   // history, there's no risk of clobbering a carefully-built list) — only
   // when still blank, so it never overwrites something the user typed here.
+  // This does count as a real change, so (unlike merely viewing) it's worth
+  // persisting right away rather than waiting for some other edit.
+  let didAutoFillName = false;
   if (!state.fullName) {
     const rirekishoState = Storage.load(RIREKISHO_PREFIX + CANDIDATE_ID);
     if (rirekishoState && rirekishoState.fullName) {
       state.fullName = rirekishoState.fullName;
+      didAutoFillName = true;
     }
   }
 
   refreshForm();
-  // Ensure this candidate shows up in the list immediately, even before any edits.
-  if (autoPersist && !Storage.load(STORAGE_KEY)) persist();
+  if (didAutoFillName) persist();
 
   // Keep the tab-switch links pointed at the same candidate.
   document.getElementById("navRirekisho").href = candidateUrl("rirekisho.html", CANDIDATE_ID);
