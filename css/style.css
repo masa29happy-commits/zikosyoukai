@@ -187,12 +187,8 @@ a { color: var(--color-accent); }
 .login-box .field input { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--color-border); border-radius: 4px; }
 .login-box .btn { width: 100%; }
 .sync-notice {
-  background: #fff8e1;
-  border: 1px solid #e0c46c;
-  color: #6b5a00;
+  color: var(--color-muted);
   font-size: 12px;
-  padding: 8px 12px;
-  border-radius: 6px;
   margin: -6px 0 14px;
 }
 .btn {

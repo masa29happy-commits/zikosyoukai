@@ -127,7 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!SYNC_CONFIG.webAppUrl) return;
   const notice = document.createElement("div");
   notice.className = "sync-notice";
-  notice.textContent = "入力・保存した内容は管理者のスプレッドシートに自動的に共有されます。";
+  notice.textContent = "自動保存";
   const toolbar = document.querySelector(".toolbar");
   if (toolbar) toolbar.insertAdjacentElement("afterend", notice);
 });

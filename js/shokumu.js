@@ -551,6 +551,16 @@ async function initPage() {
     }
   }
 
+  // The name is the one field worth carrying over automatically (unlike job
+  // history, there's no risk of clobbering a carefully-built list) — only
+  // when still blank, so it never overwrites something the user typed here.
+  if (!state.fullName) {
+    const rirekishoState = Storage.load(RIREKISHO_PREFIX + CANDIDATE_ID);
+    if (rirekishoState && rirekishoState.fullName) {
+      state.fullName = rirekishoState.fullName;
+    }
+  }
+
   refreshForm();
   // Ensure this candidate shows up in the list immediately, even before any edits.
   if (autoPersist && !Storage.load(STORAGE_KEY)) persist();
