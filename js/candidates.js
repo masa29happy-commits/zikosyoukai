@@ -43,7 +43,20 @@ async function loadAllCandidates(auth) {
     .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
 }
 
-function renderCandidatesList(candidates) {
+// Ignores spaces and case so "鈴木 慎太郎" matches a search for "鈴木慎太郎".
+function normalizeForSearch(s) {
+  return (s || "").replace(/\s+/g, "").toLowerCase();
+}
+
+let allCandidates = [];
+
+function applyNameFilter() {
+  const q = normalizeForSearch(document.getElementById("candidateSearchInput").value);
+  const filtered = q ? allCandidates.filter(c => normalizeForSearch(c.name).includes(q)) : allCandidates;
+  renderCandidatesList(filtered, q && allCandidates.length > 0);
+}
+
+function renderCandidatesList(candidates, isFilteredEmpty) {
   const table = document.getElementById("candidatesTable");
   const emptyState = document.getElementById("emptyState");
   const body = document.getElementById("candidatesBody");
@@ -51,6 +64,9 @@ function renderCandidatesList(candidates) {
   if (candidates.length === 0) {
     table.style.display = "none";
     emptyState.style.display = "block";
+    emptyState.textContent = isFilteredEmpty
+      ? "一致する求職者が見つかりませんでした。"
+      : "まだ求職者が登録されていません。「+ 新しい求職者を追加」から始めてください。";
     return;
   }
   table.style.display = "table";
@@ -119,13 +135,14 @@ function renderCandidatesList(candidates) {
 async function refreshCandidatesList() {
   // No login system active: same instant local-only render as before.
   if (!SYNC_CONFIG.webAppUrl) {
-    renderCandidatesList(listCandidates());
+    allCandidates = listCandidates();
+    applyNameFilter();
     return;
   }
   // With login active, don't flash the unfiltered local list first — it may
   // contain candidates left over from a different login on this browser.
-  const all = await loadAllCandidates(getStaffAuth());
-  renderCandidatesList(all);
+  allCandidates = await loadAllCandidates(getStaffAuth());
+  applyNameFilter();
 }
 
 function showLoginGate(errorMessage) {
@@ -172,6 +189,7 @@ function bindLoginGateOnce() {
 async function initCandidatesPage() {
   migrateLegacyData();
   bindLoginGateOnce();
+  document.getElementById("candidateSearchInput").addEventListener("input", applyNameFilter);
   document.getElementById("addCandidateBtn").addEventListener("click", () => {
     const id = generateCandidateId();
     location.href = candidateUrl("rirekisho.html", id);
