@@ -242,11 +242,14 @@ function bindJobActions() {
 
 // ---------- Pull company/period from the rirekisho's work history ----------
 // Extracts {company, start, end, current} from rirekisho work-history rows,
-// handling both shapes rirekisho.js's own row consolidation produces: a
-// single row already merged ("〇〇 入社（同年7月 ... 退職）" / "〇〇 入社
-// （2023年4月 ... 退職）") and two separate rows (a join-only row
-// immediately followed by its matching leave row for the same company). A
-// join row with no matching leave anywhere is treated as their current job.
+// handling all the shapes real resumes actually use: a single row already
+// merged ("〇〇 入社（同年7月 ... 退職）" / "〇〇 入社（2023年4月 ...
+// 退職）"), two separate rows (a join-only row immediately followed by its
+// matching leave row for the same company), and — since not everyone
+// actually types 入社/退社 — two adjacent rows with the exact same text
+// written twice at different dates (no keyword at all), treated as an
+// implicit start→end pair using that text as the label. A join row with no
+// matching leave anywhere is treated as their current job.
 function extractJobsFromRirekisho(workHistoryRows) {
   const JOIN_RE = /(入社|入職)/;
   const LEAVE_RE = /(退社|退職)/;
@@ -256,37 +259,66 @@ function extractJobsFromRirekisho(workHistoryRows) {
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const joinMatch = row.text && row.text.match(JOIN_RE);
-    if (!joinMatch) continue;
+    const text = (row.text || "").trim();
+    if (!text) continue;
+    const joinMatch = row.text.match(JOIN_RE);
 
-    const company = row.text.slice(0, joinMatch.index).trim();
-    if (!company) continue;
-    const start = toMonthValue(row.year, row.month);
+    if (joinMatch) {
+      const company = row.text.slice(0, joinMatch.index).trim();
+      if (!company) continue;
+      const start = toMonthValue(row.year, row.month);
 
-    if (LEAVE_RE.test(row.text)) {
-      // Already consolidated into one row — pull the end date out of the
-      // "（同年7月...）" / "（2023年4月...）" parenthetical.
-      const consolidated = row.text.match(/[（(](?:同年|(\d{4})年)\s*(\d{1,2})\s*月/);
-      if (consolidated) {
-        jobs.push({ company, start, end: toMonthValue(consolidated[1] || row.year, consolidated[2]), current: false });
+      if (LEAVE_RE.test(row.text)) {
+        // Already consolidated into one row — pull the end date out of the
+        // "（同年7月...）" / "（2023年4月...）" parenthetical.
+        const consolidated = row.text.match(/[（(](?:同年|(\d{4})年)\s*(\d{1,2})\s*月/);
+        if (consolidated) {
+          jobs.push({ company, start, end: toMonthValue(consolidated[1] || row.year, consolidated[2]), current: false });
+        }
+        // Couldn't parse the end date out of it — skip rather than guess wrong.
+        continue;
       }
-      // Couldn't parse the end date out of it — skip rather than guess wrong.
+
+      const next = rows[i + 1];
+      if (next && next.text && LEAVE_RE.test(next.text) && !JOIN_RE.test(next.text) && next.text.startsWith(company)) {
+        jobs.push({ company, start, end: toMonthValue(next.year, next.month), current: false });
+        i++; // this leave row is consumed as part of the pair, don't re-scan it
+      } else {
+        jobs.push({ company, start, end: "", current: true });
+      }
       continue;
     }
 
-    const next = rows[i + 1];
-    if (next && next.text && LEAVE_RE.test(next.text) && !JOIN_RE.test(next.text) && next.text.startsWith(company)) {
-      jobs.push({ company, start, end: toMonthValue(next.year, next.month), current: false });
-      i++; // this leave row is consumed as part of the pair, don't re-scan it
-    } else {
-      jobs.push({ company, start, end: "", current: true });
+    // No 入社/入職/退社/退職 at all — some people describe the start and end
+    // differently ("〇〇 業務委託開始（電気工事）" / "〇〇 契約期間満了によ
+    // り終了") instead of repeating the exact same line or using 入社/退社.
+    // Treat two adjacent rows as a pair when they share the same leading
+    // "company" segment (the text up to the first space) even if the rest of
+    // the sentence differs; falls back to the whole line when there's no
+    // space to split on, which still matches an exact repeat like before.
+    if (!LEAVE_RE.test(row.text)) {
+      const next = rows[i + 1];
+      const companyPrefix = (s) => { const m = s.match(/^(.+?)[\s　]/); return m ? m[1] : s; };
+      const rowCompany = companyPrefix(text);
+      if (next && next.text && rowCompany && companyPrefix(next.text.trim()) === rowCompany) {
+        jobs.push({ company: rowCompany, start: toMonthValue(row.year, row.month), end: toMonthValue(next.year, next.month), current: false });
+        i++;
+      }
     }
   }
   return jobs;
 }
 
-function syncJobsFromRirekisho() {
-  const rirekishoState = Storage.load(RIREKISHO_PREFIX + CANDIDATE_ID);
+async function syncJobsFromRirekisho() {
+  // Viewing the rirekisho no longer caches it in this browser by itself, so
+  // its data may only exist on the shared sheet — fall back to fetching it
+  // directly (this is a one-off read for an explicit button press, not a
+  // passive view, so it doesn't conflict with that view-vs-edit rule).
+  let rirekishoState = Storage.load(RIREKISHO_PREFIX + CANDIDATE_ID);
+  if (!rirekishoState) {
+    const remote = await fetchFromSheet(CANDIDATE_ID, "rirekisho");
+    if (remote) rirekishoState = remote.data;
+  }
   if (!rirekishoState || !Array.isArray(rirekishoState.workHistory) || rirekishoState.workHistory.length === 0) {
     alert("履歴書の職歴データが見つかりませんでした。先に履歴書側で職歴を入力してください。");
     return;
