@@ -104,6 +104,9 @@ function schoolCohortYear(birthDateStr) {
 // Fills the high school entrance/graduation year+month (age 15 -> April,
 // age 18 -> March) into the first two 学歴 rows, but only if those rows are
 // still completely blank — never overwrites anything the user already typed.
+// The entrance row also gets "入学" as a starting point (the user still has
+// to prepend the school name); the graduation row's text is left for the
+// user to fill in themselves, school name and all.
 function fillHighSchoolDatesFromBirthdate() {
   const cohort = schoolCohortYear(state.birthDate);
   if (cohort === null) return;
@@ -111,6 +114,7 @@ function fillHighSchoolDatesFromBirthdate() {
   if (isBlank(state.education[0])) {
     state.education[0].year = String(cohort + 15);
     state.education[0].month = "4";
+    state.education[0].text = "入学";
   }
   if (isBlank(state.education[1])) {
     state.education[1].year = String(cohort + 18);
