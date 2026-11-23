@@ -235,6 +235,9 @@ function bindPhotoOnce() {
 // refreshTable re-renders this same table (and its "+行を追加" button state)
 // after a reorder — passing the table's own bind*Table function back in is
 // what makes the swap show up immediately.
+// textPlaceholder is either a plain string (shown as the hint on row 0 only)
+// or a function(idx) => string, for tables that want a different hint per
+// row (学歴's first two rows: 入学 then 卒業).
 function renderFixedTable(bodyEl, rows, textPlaceholder, refreshTable) {
   bodyEl.innerHTML = "";
   rows.forEach((row, idx) => {
@@ -260,7 +263,9 @@ function renderFixedTable(bodyEl, rows, textPlaceholder, refreshTable) {
     const textInput = document.createElement("input");
     textInput.type = "text";
     textInput.value = row.text;
-    textInput.placeholder = idx === 0 ? textPlaceholder : "";
+    textInput.placeholder = typeof textPlaceholder === "function"
+      ? (textPlaceholder(idx) || "")
+      : (idx === 0 ? textPlaceholder : "");
     textInput.addEventListener("input", () => { row.text = textInput.value; persistDebounced(); renderPreview(); });
     textTd.appendChild(textInput);
 
@@ -307,7 +312,12 @@ function updateAddButtonState(buttonEl, currentLength, max, label) {
 }
 
 function bindEducationTable() {
-  renderFixedTable(document.getElementById("educationBody"), state.education, "〇〇高等学校 卒業", bindEducationTable);
+  renderFixedTable(
+    document.getElementById("educationBody"),
+    state.education,
+    idx => (idx === 0 ? "〇〇高等学校 入学" : idx === 1 ? "〇〇高等学校 卒業" : ""),
+    bindEducationTable
+  );
   const total = state.education.length + state.workHistory.length;
   updateAddButtonState(document.getElementById("addEducationRowBtn"), total, HISTORY_ENTRIES_MAX, "学歴+職歴で");
 }
