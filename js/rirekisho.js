@@ -101,23 +101,32 @@ function schoolCohortYear(birthDateStr) {
   return (m < 4 || (m === 4 && day === 1)) ? y - 1 : y;
 }
 
-// Fills the high school entrance/graduation year+month (age 15 -> April,
-// age 18 -> March) into the first two 学歴 rows, but only if those rows are
-// still completely blank — never overwrites anything the user already typed.
-// The entrance row also gets "入学" as a starting point (the user still has
-// to prepend the school name); the graduation row's text is left for the
-// user to fill in themselves, school name and all.
+// Fills the high school entrance/graduation year+month into the first two
+// 学歴 rows, but only if those rows are still completely blank — never
+// overwrites anything the user already typed. The entrance row also gets
+// "入学" as a starting point (the user still has to prepend the school
+// name); the graduation row's text is left for the user to fill in
+// themselves, school name and all.
+//
+// The +16/+19 offsets (not +15/+18) come from working the cohort forward
+// one stage at a time: elementary entrance is cohort+7 (not +6 — a child
+// born exactly April 2 of `cohort` turns 6 the day before their birthday
+// per Japan's age-counting law, i.e. April 1 of cohort+6, which is BEFORE
+// that year's April 1 cutoff, so they start the following April instead),
+// +6 years to elementary graduation (cohort+13), +3 to middle school
+// graduation (cohort+16 — same as high school entrance), +3 more to high
+// school graduation (cohort+19).
 function fillHighSchoolDatesFromBirthdate() {
   const cohort = schoolCohortYear(state.birthDate);
   if (cohort === null) return;
   const isBlank = row => row && !row.year && !row.month && !row.text;
   if (isBlank(state.education[0])) {
-    state.education[0].year = String(cohort + 15);
+    state.education[0].year = String(cohort + 16);
     state.education[0].month = "4";
     state.education[0].text = "入学";
   }
   if (isBlank(state.education[1])) {
-    state.education[1].year = String(cohort + 18);
+    state.education[1].year = String(cohort + 19);
     state.education[1].month = "3";
   }
 }
