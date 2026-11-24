@@ -103,10 +103,9 @@ function schoolCohortYear(birthDateStr) {
 
 // Fills the high school entrance/graduation year+month into the first two
 // 学歴 rows, but only if those rows are still completely blank — never
-// overwrites anything the user already typed. The entrance row also gets
-// "入学" as a starting point (the user still has to prepend the school
-// name); the graduation row's text is left for the user to fill in
-// themselves, school name and all.
+// overwrites anything the user already typed. Text is left for the user to
+// fill in themselves on both rows (renderFixedTable's per-row placeholder
+// hints at "入学"/"卒業" in the meantime).
 //
 // The +16/+19 offsets (not +15/+18) come from working the cohort forward
 // one stage at a time: elementary entrance is cohort+7 (not +6 — a child
@@ -123,7 +122,6 @@ function fillHighSchoolDatesFromBirthdate() {
   if (isBlank(state.education[0])) {
     state.education[0].year = String(cohort + 16);
     state.education[0].month = "4";
-    state.education[0].text = "入学";
   }
   if (isBlank(state.education[1])) {
     state.education[1].year = String(cohort + 19);
